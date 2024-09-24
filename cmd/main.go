@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/ffaann02/cosplace-server/api"
 	"github.com/ffaann02/cosplace-server/internal/config"
@@ -18,6 +20,9 @@ func main() {
 	config.InitDB()
 	app := fiber.New()
 	api.SetupRoutes(app)
-	app.Listen(":3000")
-	fmt.Println("Server is running on port 3000")
+	var port string = os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	log.Fatal(app.Listen("0.0.0.0:" + port))
 }
