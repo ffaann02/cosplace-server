@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func AuthenRoutes(app *fiber.App) {
+func AuthenRoutes(app fiber.Router) {
 	authen := app.Group("/auth")
 
 	authen.Post("/register", handler.Register)

@@ -2,9 +2,12 @@ package handler
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var users = []m.User{
@@ -30,17 +33,53 @@ func Register(c *fiber.Ctx) error {
 
 func Login(c *fiber.Ctx) error {
 	var loginRequest m.LoginRequest
-	fmt.Printf("%+v", c.Queries())
 
 	loginRequest.Email = c.Query("email")
 	loginRequest.Username = c.Query("username")
 	loginRequest.Password = c.Query("password")
 
+	if err := c.BodyParser(&loginRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request",
+		})
+	}
+
+	fmt.Println("Parsed Request:", loginRequest)
+
 	for _, user := range users {
 		if (user.Email == loginRequest.Email || user.Username == loginRequest.Username) && user.Password == loginRequest.Password {
+			// Create the Claims
+			claims := jwt.MapClaims{
+				"user_id":  user.ID,
+				"username": user.Username,
+				"exp":      time.Now().Add(time.Hour * 72).Unix(), // Token expires in 72 hours
+			}
+
+			// Create token
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+			// Get secret key from environment variable
+			secret := os.Getenv("JWT_SECRET")
+			if secret == "" {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Secret key not found",
+				})
+			}
+
+			// Generate encoded token and send it as response.
+			t, err := token.SignedString([]byte(secret))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Could not generate token",
+				})
+			}
+
+			fmt.Println("Token:", t)
+
 			return c.JSON(fiber.Map{
 				"message": "Login success",
 				"user":    user,
+				"token":   t,
 			})
 		}
 	}
