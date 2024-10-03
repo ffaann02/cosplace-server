@@ -52,7 +52,7 @@ func Login(c *fiber.Ctx) error {
 			claims := jwt.MapClaims{
 				"user_id":  user.ID,
 				"username": user.Username,
-				"exp":      time.Now().Add(time.Hour * 72).Unix(), // Token expires in 72 hours
+				"exp":      time.Now().Add(time.Hour * 48).Unix(), // Token expires in 72 hours
 			}
 
 			// Create token
@@ -76,10 +76,18 @@ func Login(c *fiber.Ctx) error {
 
 			fmt.Println("Token:", t)
 
+			c.Cookie(&fiber.Cookie{
+				Name:     "jwt",
+				Value:    t,
+				Expires:  time.Now().Add(time.Hour * 48),
+				HTTPOnly: true,
+				Secure:   false,
+				SameSite: "None",
+			})
+
 			return c.JSON(fiber.Map{
 				"message": "Login success",
 				"user":    user,
-				"token":   t,
 			})
 		}
 	}
