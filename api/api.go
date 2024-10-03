@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/ffaann02/cosplace-server/api/routes"
+	"github.com/ffaann02/cosplace-server/internal/middleware"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -10,8 +11,9 @@ import (
 func SetupRoutes(app *fiber.App) {
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowOrigins:     "http://localhost:3000",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowCredentials: true,
 	}))
 
 	app.Use(logger.New())
@@ -19,4 +21,9 @@ func SetupRoutes(app *fiber.App) {
 
 	routes.UserRoutes(apiGroup)
 	routes.AuthenRoutes(apiGroup)
+
+	protected := apiGroup.Group("/protected")
+	protected.Use(middleware.JWTProtected())
+
+	routes.CommisionRoutes(protected)
 }
