@@ -49,16 +49,20 @@ func Login(c *fiber.Ctx) error {
 	for _, user := range users {
 		if (user.Email == loginRequest.Email || user.Username == loginRequest.Username) && user.Password == loginRequest.Password {
 			// Create the Claims
-			claims := jwt.MapClaims{
+			accessClaims := jwt.MapClaims{
 				"user_id":  user.ID,
 				"username": user.Username,
-				"exp":      time.Now().Add(time.Hour * 48).Unix(), // Token expires in 72 hours
+				"exp":      time.Now().Add(time.Minute * 15).Unix(), // Token expires in 72 hours
 			}
 
-			// Create token
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			refreshClaims := jwt.MapClaims{
+				"user_id": user.ID,
+				"exp":     time.Now().Add(time.Hour * 720).Unix(), // Refresh token expires in 72 hours
+			}
 
-			// Get secret key from environment variable
+			accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+			refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+
 			secret := os.Getenv("JWT_SECRET")
 			if secret == "" {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -67,21 +71,38 @@ func Login(c *fiber.Ctx) error {
 			}
 
 			// Generate encoded token and send it as response.
-			t, err := token.SignedString([]byte(secret))
+			accessT, err := accessToken.SignedString([]byte(secret))
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"message": "Could not generate token",
+					"message": "Could not generate access token",
 				})
 			}
 
-			fmt.Println("Token:", t)
+			refreshT, err := refreshToken.SignedString([]byte(secret))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"message": "Could not generate refresh token",
+				})
+			}
+
+			fmt.Println("Token:", accessT)
+			fmt.Println("Refresh Token:", refreshT)
 
 			c.Cookie(&fiber.Cookie{
-				Name:     "jwt",
-				Value:    t,
-				Expires:  time.Now().Add(time.Hour * 48),
+				Name:     "access_token",
+				Value:    accessT,
+				Expires:  time.Now().Add(time.Minute * 15),
 				HTTPOnly: true,
-				Secure:   false,
+				Secure:   true,
+				SameSite: "None",
+			})
+
+			c.Cookie(&fiber.Cookie{
+				Name:     "refresh_token",
+				Value:    refreshT,
+				Expires:  time.Now().Add(time.Hour * 720),
+				HTTPOnly: true,
+				Secure:   true,
 				SameSite: "None",
 			})
 
@@ -100,5 +121,94 @@ func Login(c *fiber.Ctx) error {
 func Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Logout",
+	})
+}
+
+func Refresh(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Refresh token not provided",
+		})
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Secret key not found",
+		})
+	}
+
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		// Ensure the signing method is HMAC and matches what we expect
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid refresh token",
+		})
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid token claims",
+		})
+	}
+
+	if exp, ok := claims["exp"].(float64); ok {
+		if time.Unix(int64(exp), 0).Before(time.Now()) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "Refresh token has expired",
+			})
+		}
+	}
+
+	userId := claims["user_id"].(float64)
+
+	var user m.User
+	for _, u := range users {
+		if u.ID == int64(userId) {
+			user = u
+			break
+		}
+	}
+
+	if user.ID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+
+	accessClaims := jwt.MapClaims{
+		"user_id":  user.ID,
+		"username": user.Username,
+		"exp":      time.Now().Add(time.Minute * 15).Unix(),
+	}
+
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessT, err := accessToken.SignedString([]byte(secret))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Could not generate access token",
+		})
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessT,
+		Expires:  time.Now().Add(time.Minute * 15),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
+
+	return c.JSON(fiber.Map{
+		"message":     "Token refreshed",
+		"accessToken": accessT,
 	})
 }

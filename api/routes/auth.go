@@ -11,4 +11,6 @@ func AuthenRoutes(app fiber.Router) {
 	authen.Post("/register", handler.Register)
 	authen.Post("/login", handler.Login)
 	authen.Post("/logout", handler.Logout)
+
+	authen.Post("/refresh", handler.Refresh)
 }

@@ -10,8 +10,8 @@ import (
 
 func JWTProtected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// fmt.Println("Request Headers:", c.GetReqHeaders())
-		cookie := c.Cookies("jwt")
+		cookie := c.Cookies("access_token")
+
 		fmt.Println("Cookie:", cookie)
 		if cookie == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -33,6 +33,15 @@ func JWTProtected() fiber.Handler {
 			})
 		}
 
-		return c.Next()
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			c.Locals("user_id", claims["user_id"])
+			c.Locals("username", claims["username"])
+
+			return c.Next()
+		} else {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "Invalid token claims",
+			})
+		}
 	}
 }
