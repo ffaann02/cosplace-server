@@ -14,3 +14,11 @@ func UserRoutes(app fiber.Router) {
 	user.Put("/:id", handler.UpdateUser)
 	user.Delete("/:id", handler.DeleteUser)
 }
+
+func ProtectedUserRoutes(app fiber.Router) {
+	user := app.Group("/user")
+
+	user.Post("/", handler.CreateUser)
+	user.Put("/:id", handler.UpdateUser)
+	user.Delete("/:id", handler.DeleteUser)
+}

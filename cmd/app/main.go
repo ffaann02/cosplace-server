@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ffaann02/cosplace-server/api"
+	"github.com/ffaann02/cosplace-server/internal/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
@@ -16,7 +17,7 @@ func main() {
 		fmt.Println("Error loading .env file")
 	}
 
-	// config.InitDB()
+	config.InitDB()
 	app := fiber.New()
 	api.SetupRoutes(app)
 	var port string = os.Getenv("PORT")
