@@ -212,3 +212,18 @@ func Refresh(c *fiber.Ctx) error {
 		"accessToken": accessT,
 	})
 }
+
+func CheckAuth(c *fiber.Ctx) error {
+
+	refresh_token := c.Cookies("refresh_token")
+
+	if refresh_token == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Authenticated",
+	})
+}
