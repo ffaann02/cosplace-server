@@ -5,9 +5,12 @@ import (
 	"os"
 	"time"
 
+	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var users = []m.User{
@@ -25,15 +28,96 @@ var users = []m.User{
 	},
 }
 
+// Register handles user registration
 func Register(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{
-		"message": "Register",
+	// Parse the request body
+	var registerRequest m.RegisterRequest
+
+	// Get input from query or body
+	if err := c.BodyParser(&registerRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request",
+		})
+	}
+	fmt.Println("Parsed Request:", registerRequest)
+
+	registerRequest.FirstName = c.Query("firstname")
+	registerRequest.LastName = c.Query("lastname")
+	registerRequest.PhoneNumber = c.Query("phoneNumber")
+	registerRequest.DateOfBirth = c.Query("dateOfBirth")
+	registerRequest.Username = c.Query("username")
+	registerRequest.Email = c.Query("email")
+	registerRequest.Password = c.Query("password")
+
+	if err := c.BodyParser(&registerRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid input",
+		})
+	}
+
+	fmt.Println(registerRequest.FirstName)
+	fmt.Println(registerRequest.LastName)
+	fmt.Println(registerRequest.PhoneNumber)
+	fmt.Println(registerRequest.DateOfBirth)
+	fmt.Println(registerRequest.Username)
+	fmt.Println(registerRequest.Email)
+	fmt.Println(registerRequest.Password)
+
+	// Validate input
+	if registerRequest.Username == "" || registerRequest.Email == "" || registerRequest.Password == "" ||
+		registerRequest.FirstName == "" || registerRequest.LastName == "" || registerRequest.PhoneNumber == "" || registerRequest.DateOfBirth == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "All fields are required",
+		})
+	}
+
+	// Check if user already exists
+	db := config.MysqlDB()
+	var existingUser m.User
+	if err := db.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": "Email already registered",
+		})
+	}
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not hash the password",
+		})
+	}
+
+	// Create the new user
+	newUser := m.User{
+		Email:       registerRequest.Email,
+		Username:    registerRequest.Username,
+		Password:    string(hashedPassword),
+		FirstName:   registerRequest.FirstName,
+		LastName:    registerRequest.LastName,
+		PhoneNumber: registerRequest.PhoneNumber,
+		DateOfBirth: registerRequest.DateOfBirth,
+	}
+
+	fmt.Println(newUser.Password)
+
+	// // Save the user in the database
+	if err := db.Create(&newUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Could not create user",
+		})
+	}
+
+	// Return success response
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "User registered successfully",
 	})
 }
 
 func Login(c *fiber.Ctx) error {
 	var loginRequest m.LoginRequest
 
+	// Get input from query or body
 	loginRequest.Email = c.Query("email")
 	loginRequest.Username = c.Query("username")
 	loginRequest.Password = c.Query("password")
@@ -44,77 +128,89 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println("Parsed Request:", loginRequest)
+	// Access the database connection from the config package
+	db := config.MysqlDB()
 
-	for _, user := range users {
-		if (user.Email == loginRequest.Email || user.Username == loginRequest.Username) && user.Password == loginRequest.Password {
-			// Create the Claims
-			accessClaims := jwt.MapClaims{
-				"user_id":  user.ID,
-				"username": user.Username,
-				"exp":      time.Now().Add(time.Minute * 15).Unix(), // Token expires in 72 hours
-			}
-
-			refreshClaims := jwt.MapClaims{
-				"user_id": user.ID,
-				"exp":     time.Now().Add(time.Hour * 720).Unix(), // Refresh token expires in 72 hours
-			}
-
-			accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-			refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-
-			secret := os.Getenv("JWT_SECRET")
-			if secret == "" {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"message": "Secret key not found",
-				})
-			}
-
-			// Generate encoded token and send it as response.
-			accessT, err := accessToken.SignedString([]byte(secret))
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"message": "Could not generate access token",
-				})
-			}
-
-			refreshT, err := refreshToken.SignedString([]byte(secret))
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-					"message": "Could not generate refresh token",
-				})
-			}
-
-			fmt.Println("Token:", accessT)
-			fmt.Println("Refresh Token:", refreshT)
-
-			c.Cookie(&fiber.Cookie{
-				Name:     "access_token",
-				Value:    accessT,
-				Expires:  time.Now().Add(time.Minute * 15),
-				HTTPOnly: true,
-				Secure:   true,
-				SameSite: "None",
-			})
-
-			c.Cookie(&fiber.Cookie{
-				Name:     "refresh_token",
-				Value:    refreshT,
-				Expires:  time.Now().Add(time.Hour * 720),
-				HTTPOnly: true,
-				Secure:   true,
-				SameSite: "None",
-			})
-
-			return c.JSON(fiber.Map{
-				"message": "Login success",
-				"user":    user,
+	var user m.User
+	// Query user from the database
+	err := db.Where("email = ? OR username = ?", loginRequest.Email, loginRequest.Username).First(&user).Error
+	fmt.Println(user)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"message": "No account found",
 			})
 		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Could not query the database",
+		})
 	}
 
-	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-		"message": "Invalid credentials",
+	// Verify password (in production, use hashing)
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Invalid credentials",
+		})
+	}
+
+	// Create JWT tokens (same as your original code)
+	accessClaims := jwt.MapClaims{
+		"user_id":  user.ID,
+		"username": user.Username,
+		"exp":      time.Now().Add(time.Minute * 15).Unix(),
+	}
+
+	refreshClaims := jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 720).Unix(),
+	}
+
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Secret key not found",
+		})
+	}
+
+	accessT, err := accessToken.SignedString([]byte(secret))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Could not generate access token",
+		})
+	}
+
+	refreshT, err := refreshToken.SignedString([]byte(secret))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Could not generate refresh token",
+		})
+	}
+
+	// Set cookies for tokens (same as your original code)
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessT,
+		Expires:  time.Now().Add(time.Minute * 15),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshT,
+		Expires:  time.Now().Add(time.Hour * 720),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
+
+	return c.JSON(fiber.Map{
+		"message": "Login success",
+		"user":    user,
 	})
 }
 

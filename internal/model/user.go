@@ -1,16 +1,24 @@
 package model
 
-import "time"
-
 type User struct {
-	ID          int64     `json:"user_id"`
-	Email       string    `json:"email"`
-	Username    string    `json:"username"`
-	Password    string    `json:"password"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	PhoneNumber string    `json:"phone_number"`
-	DateOfBirth time.Time `json:"date_of_birth"`
+	ID          int64  `json:"user_id"`
+	Email       string `json:"email"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	PhoneNumber string `json:"phone_number"`
+	DateOfBirth string `json:"date_of_birth"`
+}
+
+type RegisterRequest struct {
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	PhoneNumber string `json:"phone_number"`
+	DateOfBirth string `json:"date_of_birth"`
+	Email       string `json:"email"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
 }
 
 type LoginRequest struct {

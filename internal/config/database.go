@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// DB is the global database connection
+var db *gorm.DB
+
 func InitDB() *gorm.DB {
 	var (
 		host        = os.Getenv("MYSQL_HOST")
@@ -27,11 +30,19 @@ func InitDB() *gorm.DB {
 	fmt.Printf("host: %s, user: %s, password: %s, dbname: %s, port: %d\n", host, user, password, dbname, port)
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, dbname)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	dbInstance, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
-	// db.AutoMigrate(&model.User{})
+
+	// Assign the instance to the global variable
+	db = dbInstance
+
 	fmt.Println("Database connected successfully")
+	return db
+}
+
+// GetDB returns the database connection
+func MysqlDB() *gorm.DB {
 	return db
 }
