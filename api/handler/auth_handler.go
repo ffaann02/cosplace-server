@@ -215,8 +215,26 @@ func Login(c *fiber.Ctx) error {
 }
 
 func Logout(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{
-		"message": "Logout",
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-100 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-100 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+	})
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Logout Successfully",
 	})
 }
 
@@ -236,8 +254,7 @@ func Refresh(c *fiber.Ctx) error {
 	}
 
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
-		// Ensure the signing method is HMAC and matches what we expect
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(secret), nil
@@ -310,7 +327,6 @@ func Refresh(c *fiber.Ctx) error {
 }
 
 func CheckAuth(c *fiber.Ctx) error {
-
 	refresh_token := c.Cookies("refresh_token")
 
 	if refresh_token == "" {
