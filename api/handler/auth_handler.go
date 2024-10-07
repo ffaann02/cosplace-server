@@ -161,8 +161,9 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 720).Unix(),
+		"user_id":  user.ID,
+		"username": user.Username,
+		"exp":      time.Now().Add(time.Hour * 720).Unix(),
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -328,6 +329,8 @@ func Refresh(c *fiber.Ctx) error {
 
 func CheckAuth(c *fiber.Ctx) error {
 	refresh_token := c.Cookies("refresh_token")
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	fmt.Println(refresh_token)
 
 	if refresh_token == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -335,7 +338,31 @@ func CheckAuth(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Authenticated",
+	token, err := jwt.Parse(refresh_token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil // Return the secret key for validation
+	})
+
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID := claims["user_id"]
+		username := claims["username"]
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message":  "Authenticated",
+			"user_id":  userID,
+			"username": username,
+		})
+	}
+
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+		"message": "Unauthorized",
 	})
 }

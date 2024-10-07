@@ -12,10 +12,11 @@ func AuthenRoutes(app fiber.Router) {
 	authen.Post("/refresh", handler.Refresh)
 	authen.Post("/register", handler.Register)
 	authen.Post("/login", handler.Login)
+	// authen.Post("/logout", handler.Logout)
 }
 
 func ProtectedAuthenRoutes(app fiber.Router) {
 	authen := app.Group("/auth")
-
 	authen.Post("/logout", handler.Logout)
+
 }
