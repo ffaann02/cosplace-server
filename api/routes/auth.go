@@ -18,5 +18,4 @@ func AuthenRoutes(app fiber.Router) {
 func ProtectedAuthenRoutes(app fiber.Router) {
 	authen := app.Group("/auth")
 	authen.Post("/logout", handler.Logout)
-
 }

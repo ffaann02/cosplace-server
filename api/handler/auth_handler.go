@@ -211,7 +211,6 @@ func Login(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "Login success",
-		"user":    user,
 	})
 }
 
@@ -236,6 +235,7 @@ func Logout(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logout Successfully",
+		"user":    users,
 	})
 }
 
@@ -255,7 +255,7 @@ func Refresh(c *fiber.Ctx) error {
 	}
 
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(secret), nil
@@ -292,11 +292,11 @@ func Refresh(c *fiber.Ctx) error {
 		}
 	}
 
-	if user.ID == 0 {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "User not found",
-		})
-	}
+	// if user.ID == 0 {
+	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+	// 		"message": "User not found",
+	// 	})
+	// }
 
 	accessClaims := jwt.MapClaims{
 		"user_id":  user.ID,
@@ -322,8 +322,7 @@ func Refresh(c *fiber.Ctx) error {
 	})
 
 	return c.JSON(fiber.Map{
-		"message":     "Token refreshed",
-		"accessToken": accessT,
+		"message": "Token refreshed",
 	})
 }
 
