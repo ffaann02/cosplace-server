@@ -6,7 +6,14 @@ import (
 )
 
 func CommisionRoutes(app fiber.Router) {
-	user := app.Group("/commission")
+	commision := app.Group("/commission")
 
-	user.Get("/", handler.GetCommisions)
+	commision.Get("/", handler.GetCommisions)
+	commision.Get("/:id", handler.GetCommision)
+}
+
+func ProtectedCommisionRoutes(app fiber.Router) {
+	commision := app.Group("/commission")
+	commision.Get("/", handler.GetCommisions)
+
 }
