@@ -19,6 +19,8 @@ func SetupRoutes(app *fiber.App) {
 	app.Use(logger.New())
 	apiGroup := app.Group("/api")
 
+	routes.IndexRoutes(apiGroup)
+
 	routes.UserRoutes(apiGroup)
 	routes.AuthenRoutes(apiGroup)
 	routes.CommisionRoutes(apiGroup)
