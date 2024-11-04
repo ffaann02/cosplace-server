@@ -51,7 +51,7 @@ func Register(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid input",
+			"message": "Invalid input",
 		})
 	}
 
@@ -67,7 +67,7 @@ func Register(c *fiber.Ctx) error {
 	if registerRequest.Username == "" || registerRequest.Email == "" || registerRequest.Password == "" ||
 		registerRequest.FirstName == "" || registerRequest.LastName == "" || registerRequest.PhoneNumber == "" || registerRequest.DateOfBirth == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "All fields are required",
+			"message": "All fields are required",
 		})
 	}
 
@@ -76,7 +76,13 @@ func Register(c *fiber.Ctx) error {
 	var existingUser m.User
 	if err := db.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Email already registered",
+			"message": "อีเมลนี้ถูกใช้งานแล้ว",
+		})
+	}
+
+	if err := db.Where("username = ?", registerRequest.Username).First(&existingUser).Error; err == nil {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"message": "ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว",
 		})
 	}
 
@@ -84,7 +90,7 @@ func Register(c *fiber.Ctx) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Could not hash the password",
+			"message": "Could not hash the password",
 		})
 	}
 
@@ -104,7 +110,7 @@ func Register(c *fiber.Ctx) error {
 	// // Save the user in the database
 	if err := db.Create(&newUser).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Could not create user",
+			"message": "Could not create user",
 		})
 	}
 
@@ -137,19 +143,19 @@ func Login(c *fiber.Ctx) error {
 	fmt.Println(user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"message": "No account found",
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"message": "ไม่พบบัญชีผู้ใช้งาน โปรดลงทะเบียนหรือตรวจสอบข้อมูลใหม่อีกครั้ง",
 			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Could not query the database",
+			"message": "เกิดข้อผิดพลาดบางอย่าง โปรดลองอีกครั้ง",
 		})
 	}
 
 	// Verify password (in production, use hashing)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Invalid credentials",
+			"message": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
 		})
 	}
 
