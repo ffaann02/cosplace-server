@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	h "github.com/ffaann02/cosplace-server/api/helper"
 	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	v "github.com/ffaann02/cosplace-server/internal/utils"
@@ -38,7 +39,7 @@ func Register(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid input",
+			"message": "Invalid input",
 		})
 	}
 
@@ -65,23 +66,41 @@ func Register(c *fiber.Ctx) error {
 
 	// Check if user already exists
 	db := config.MysqlDB()
+	tx := db.Begin()
 	var existingUser m.User
-	if err := db.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
+	if err := tx.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Email already registered",
+			"message": "อีเมลนี้ถูกใช้งานแล้ว",
+		})
+	}
+
+	if err := tx.Where("username = ?", registerRequest.Username).First(&existingUser).Error; err == nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"message": "ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว",
 		})
 	}
 
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Could not hash the password",
+			"message": "เกิดข้อผิดพลาดกับรหัสผ่าน",
 		})
 	}
 
+	userID, err := h.GenerateNewUserID(tx)
+	if err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
+		})
+	}
 	// Create the new user
 	newUser := m.User{
+		UserId:      userID,
 		Email:       registerRequest.Email,
 		Username:    registerRequest.Username,
 		Password:    string(hashedPassword),
@@ -96,14 +115,17 @@ func Register(c *fiber.Ctx) error {
 
 	// // Save the user in the database
 	if err := db.Create(&newUser).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Could not create user",
+			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
 		})
 	}
 
+	tx.Commit()
+
 	// Return success response
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully",
+		"message": "สมัครบัญชีผู้ใช้งานเสร็จสิ้น",
 	})
 }
 
@@ -130,31 +152,31 @@ func Login(c *fiber.Ctx) error {
 	fmt.Println(user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"message": "No account found",
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"message": "ไม่พบบัญชีผู้ใช้งาน โปรดลงทะเบียนหรือตรวจสอบข้อมูลใหม่อีกครั้ง",
 			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Could not query the database",
+			"message": "เกิดข้อผิดพลาดบางอย่าง โปรดลองอีกครั้ง",
 		})
 	}
 
 	// Verify password (in production, use hashing)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Invalid credentials",
+			"message": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
 		})
 	}
 
 	// Create JWT tokens (same as your original code)
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 720).Unix(),
 	}
@@ -276,7 +298,7 @@ func Refresh(c *fiber.Ctx) error {
 
 	var user m.User
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}

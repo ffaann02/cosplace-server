@@ -1,7 +1,7 @@
 package model
 
 type User struct {
-	ID          string `json:"user_id"`
+	UserId      string `json:"user_id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
 	Email       string `json:"email"`
@@ -33,4 +33,8 @@ type LoginRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
+}
+
+func (u *User) TableName() string {
+	return "users"
 }
