@@ -7,31 +7,17 @@ import (
 
 	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
+	v "github.com/ffaann02/cosplace-server/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var users = []m.User{
-	{
-		ID:       1,
-		Username: "user1",
-		Email:    "test@gmail.com",
-		Password: "123456",
-	},
-	{
-		ID:       2,
-		Username: "user2",
-		Email:    "test2@gmail.com",
-		Password: "123456",
-	},
-}
-
 // Register handles user registration
 func Register(c *fiber.Ctx) error {
 	// Parse the request body
-	var registerRequest m.RegisterRequest
+	registerRequest := new(m.RegisterRequest)
 
 	// Get input from query or body
 	if err := c.BodyParser(&registerRequest); err != nil {
@@ -41,13 +27,14 @@ func Register(c *fiber.Ctx) error {
 	}
 	fmt.Println("Parsed Request:", registerRequest)
 
-	registerRequest.FirstName = c.Query("firstname")
-	registerRequest.LastName = c.Query("lastname")
-	registerRequest.PhoneNumber = c.Query("phoneNumber")
-	registerRequest.DateOfBirth = c.Query("dateOfBirth")
 	registerRequest.Username = c.Query("username")
+	// Init display name with username
 	registerRequest.Email = c.Query("email")
 	registerRequest.Password = c.Query("password")
+	registerRequest.FirstName = c.Query("firstname")
+	registerRequest.LastName = c.Query("lastname")
+	registerRequest.DateOfBirth = c.Query("date_of_birth")
+	registerRequest.PhoneNumber = c.Query("phone_number")
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -64,10 +51,15 @@ func Register(c *fiber.Ctx) error {
 	fmt.Println(registerRequest.Password)
 
 	// Validate input
-	if registerRequest.Username == "" || registerRequest.Email == "" || registerRequest.Password == "" ||
-		registerRequest.FirstName == "" || registerRequest.LastName == "" || registerRequest.PhoneNumber == "" || registerRequest.DateOfBirth == "" {
+	valid, missingField, err := v.ValidateStruct(*registerRequest)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	if !valid {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "All fields are required",
+			"error": fmt.Sprintf("Missing field: %s", missingField),
 		})
 	}
 
@@ -97,6 +89,7 @@ func Register(c *fiber.Ctx) error {
 		LastName:    registerRequest.LastName,
 		PhoneNumber: registerRequest.PhoneNumber,
 		DateOfBirth: registerRequest.DateOfBirth,
+		DisplayName: registerRequest.Username,
 	}
 
 	fmt.Println(newUser.Password)
@@ -235,7 +228,6 @@ func Logout(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logout Successfully",
-		"user":    users,
 	})
 }
 
@@ -282,22 +274,7 @@ func Refresh(c *fiber.Ctx) error {
 		}
 	}
 
-	userId := claims["user_id"].(float64)
-
 	var user m.User
-	for _, u := range users {
-		if u.ID == int64(userId) {
-			user = u
-			break
-		}
-	}
-
-	// if user.ID == 0 {
-	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-	// 		"message": "User not found",
-	// 	})
-	// }
-
 	accessClaims := jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
