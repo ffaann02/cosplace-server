@@ -5,33 +5,20 @@ import (
 	"os"
 	"time"
 
+	h "github.com/ffaann02/cosplace-server/api/helper"
 	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
+	v "github.com/ffaann02/cosplace-server/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var users = []m.User{
-	{
-		ID:       1,
-		Username: "user1",
-		Email:    "test@gmail.com",
-		Password: "123456",
-	},
-	{
-		ID:       2,
-		Username: "user2",
-		Email:    "test2@gmail.com",
-		Password: "123456",
-	},
-}
-
 // Register handles user registration
 func Register(c *fiber.Ctx) error {
 	// Parse the request body
-	var registerRequest m.RegisterRequest
+	registerRequest := new(m.RegisterRequest)
 
 	// Get input from query or body
 	if err := c.BodyParser(&registerRequest); err != nil {
@@ -41,13 +28,14 @@ func Register(c *fiber.Ctx) error {
 	}
 	fmt.Println("Parsed Request:", registerRequest)
 
-	registerRequest.FirstName = c.Query("firstname")
-	registerRequest.LastName = c.Query("lastname")
-	registerRequest.PhoneNumber = c.Query("phoneNumber")
-	registerRequest.DateOfBirth = c.Query("dateOfBirth")
 	registerRequest.Username = c.Query("username")
+	// Init display name with username
 	registerRequest.Email = c.Query("email")
 	registerRequest.Password = c.Query("password")
+	registerRequest.FirstName = c.Query("firstname")
+	registerRequest.LastName = c.Query("lastname")
+	registerRequest.DateOfBirth = c.Query("date_of_birth")
+	registerRequest.PhoneNumber = c.Query("phone_number")
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -64,23 +52,31 @@ func Register(c *fiber.Ctx) error {
 	fmt.Println(registerRequest.Password)
 
 	// Validate input
-	if registerRequest.Username == "" || registerRequest.Email == "" || registerRequest.Password == "" ||
-		registerRequest.FirstName == "" || registerRequest.LastName == "" || registerRequest.PhoneNumber == "" || registerRequest.DateOfBirth == "" {
+	valid, missingField, err := v.ValidateStruct(*registerRequest)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	if !valid {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "All fields are required",
+			"error": fmt.Sprintf("Missing field: %s", missingField),
 		})
 	}
 
 	// Check if user already exists
 	db := config.MysqlDB()
+	tx := db.Begin()
 	var existingUser m.User
-	if err := db.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
+	if err := tx.Where("email = ?", registerRequest.Email).First(&existingUser).Error; err == nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 			"message": "อีเมลนี้ถูกใช้งานแล้ว",
 		})
 	}
 
-	if err := db.Where("username = ?", registerRequest.Username).First(&existingUser).Error; err == nil {
+	if err := tx.Where("username = ?", registerRequest.Username).First(&existingUser).Error; err == nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 			"message": "ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว",
 		})
@@ -89,13 +85,22 @@ func Register(c *fiber.Ctx) error {
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerRequest.Password), bcrypt.DefaultCost)
 	if err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Could not hash the password",
+			"message": "เกิดข้อผิดพลาดกับรหัสผ่าน",
 		})
 	}
 
+	userID, err := h.GenerateNewUserID(tx)
+	if err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
+		})
+	}
 	// Create the new user
 	newUser := m.User{
+		UserId:      userID,
 		Email:       registerRequest.Email,
 		Username:    registerRequest.Username,
 		Password:    string(hashedPassword),
@@ -103,20 +108,24 @@ func Register(c *fiber.Ctx) error {
 		LastName:    registerRequest.LastName,
 		PhoneNumber: registerRequest.PhoneNumber,
 		DateOfBirth: registerRequest.DateOfBirth,
+		DisplayName: registerRequest.Username,
 	}
 
 	fmt.Println(newUser.Password)
 
 	// // Save the user in the database
 	if err := db.Create(&newUser).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Could not create user",
+			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
 		})
 	}
 
+	tx.Commit()
+
 	// Return success response
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully",
+		"message": "สมัครบัญชีผู้ใช้งานเสร็จสิ้น",
 	})
 }
 
@@ -161,13 +170,13 @@ func Login(c *fiber.Ctx) error {
 
 	// Create JWT tokens (same as your original code)
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 720).Unix(),
 	}
@@ -241,7 +250,6 @@ func Logout(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logout Successfully",
-		"user":    users,
 	})
 }
 
@@ -288,24 +296,9 @@ func Refresh(c *fiber.Ctx) error {
 		}
 	}
 
-	userId := claims["user_id"].(float64)
-
 	var user m.User
-	for _, u := range users {
-		if u.ID == int64(userId) {
-			user = u
-			break
-		}
-	}
-
-	// if user.ID == 0 {
-	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-	// 		"message": "User not found",
-	// 	})
-	// }
-
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  user.UserId,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
