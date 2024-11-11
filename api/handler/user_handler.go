@@ -41,8 +41,45 @@ func CreateUser(c *fiber.Ctx) error {
 }
 
 func UpdateUser(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{
-		"message": "Update user",
+	db := config.MysqlDB()
+
+	var user m.User
+	if err := c.BodyParser(&user); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	username := user.Username
+	fmt.Print(username)
+
+	// Begin transaction
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Update user
+	if err := tx.Model(&m.User{}).Where("username = ?", username).Updates(user).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update user",
+		})
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "User updated successfully",
+		"user":    user,
 	})
 }
 
