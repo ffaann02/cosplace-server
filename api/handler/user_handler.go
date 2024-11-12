@@ -9,16 +9,9 @@ import (
 )
 
 func GetUsers(c *fiber.Ctx) error {
-	db := config.MysqlDB()
-	username := c.Query("username")
-	var user = m.User{Username: username}
-	if err := db.Find(&user).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to query database",
-		})
-	}
-	fmt.Println(user)
-	return c.JSON(user)
+	return c.JSON(fiber.Map{
+		"message": "Get all users",
+	})
 }
 
 func GetUser(c *fiber.Ctx) error {
