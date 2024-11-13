@@ -1,19 +1,22 @@
 package model
 
+import (
+	"time"
+)
+
 type User struct {
-	UserId      string `json:"user_id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Gender      string `json:"gender"`
-	DateOfBirth string `json:"date_of_birth"`
-	PhoneNumber string `json:"phone_number,omitempty"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-	DeletedAt   string `json:"deleted_at,omitempty"` // Pointer to allow null values
+	UserId      string     `json:"user_id" gorm:"type:varchar(20);primaryKey"`
+	Username    string     `json:"username" gorm:"type:varchar(100);uniqueIndex"`
+	Email       string     `json:"email" gorm:"type:varchar(100);uniqueIndex"`
+	Password    string     `json:"password" gorm:"type:varchar(255)"`
+	FirstName   string     `json:"first_name" gorm:"type:varchar(100)"`
+	LastName    string     `json:"last_name" gorm:"type:varchar(100)"`
+	Gender      string     `json:"gender" gorm:"type:varchar(10)"`
+	DateOfBirth string     `json:"date_of_birth" gorm:"type:date"`
+	PhoneNumber string     `json:"phone_number,omitempty" gorm:"type:varchar(20)"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty" gorm:"index"`
 }
 
 type RegisterRequest struct {
@@ -22,6 +25,7 @@ type RegisterRequest struct {
 	PhoneNumber string `json:"phone_number"`
 	DateOfBirth string `json:"date_of_birth"` // Assuming input as string, can convert to `time.Time`
 	Email       string `json:"email"`
+	Gender      string `json:"gender"`
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 }
