@@ -5,6 +5,7 @@ go 1.21.1
 require gorm.io/driver/mysql v1.5.7
 
 require (
+	github.com/JohnNON/ImgBB v1.0.2 // indirect
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect

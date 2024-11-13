@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE users
+ADD COLUMN gender VARCHAR(10) NOT NULL AFTER last_name;
+
+COMMIT;
