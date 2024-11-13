@@ -11,23 +11,23 @@ import (
 func SetupRoutes(app *fiber.App) {
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000, https://cosplace-frontend.pages.dev/",
+		AllowOrigins:     "http://localhost:3000, https://cosplace-frontend.pages.dev",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowCredentials: true,
 	}))
 
 	app.Use(logger.New())
 	apiGroup := app.Group("/api")
-
 	routes.IndexRoutes(apiGroup)
-
 	routes.UserRoutes(apiGroup)
 	routes.AuthenRoutes(apiGroup)
 	routes.CommisionRoutes(apiGroup)
+	// routes.UploadRoutes(apiGroup)
 
 	protectedGroup := apiGroup.Group("/protected")
 	protectedGroup.Use(middleware.JWTProtected())
 	routes.ProtectedUserRoutes(protectedGroup)
 	routes.ProtectedAuthenRoutes(protectedGroup)
 	routes.ProtectedCommisionRoutes(protectedGroup)
+	routes.ProtectedUploadRoutes(protectedGroup)
 }

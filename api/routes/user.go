@@ -16,6 +16,7 @@ func UserRoutes(app fiber.Router) {
 
 func ProtectedUserRoutes(app fiber.Router) {
 	user := app.Group("/user")
+
 	user.Put("/edit", handler.UpdateUser)
 	user.Post("/", handler.CreateUser)
 	user.Delete("/:id", handler.DeleteUser)
