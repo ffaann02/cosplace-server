@@ -36,6 +36,7 @@ func Register(c *fiber.Ctx) error {
 	registerRequest.LastName = c.Query("lastname")
 	registerRequest.DateOfBirth = c.Query("date_of_birth")
 	registerRequest.PhoneNumber = c.Query("phone_number")
+	registerRequest.Gender = c.Query("gender")
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -108,10 +109,9 @@ func Register(c *fiber.Ctx) error {
 		LastName:    registerRequest.LastName,
 		PhoneNumber: registerRequest.PhoneNumber,
 		DateOfBirth: registerRequest.DateOfBirth,
-		DisplayName: registerRequest.Username,
+		Gender:      registerRequest.Gender,
+		// DisplayName: registerRequest.Username,
 	}
-
-	fmt.Println(newUser.Password)
 
 	// // Save the user in the database
 	if err := db.Create(&newUser).Error; err != nil {
