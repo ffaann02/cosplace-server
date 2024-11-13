@@ -239,7 +239,7 @@ func Logout(c *fiber.Ctx) error {
 		Expires:  time.Now().Add(-100 * time.Hour),
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "None", // Try to fix logout on production
 	})
 
 	c.Cookie(&fiber.Cookie{
@@ -251,7 +251,7 @@ func Logout(c *fiber.Ctx) error {
 		Expires:  time.Now().Add(-100 * time.Hour),
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "None", // Try to fix logout on production
 	})
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
