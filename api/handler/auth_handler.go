@@ -233,8 +233,8 @@ func Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    "",
-		Path:     c.Path(),     // Try to fix logout on production
-		Domain:   c.Hostname(), // Try to fix logout on production
+		Path:     "/",                                         // Try to fix logout on production
+		Domain:   "cosplace-server-production.up.railway.app", // Try to fix logout on production
 		MaxAge:   -1,
 		Expires:  time.Now().Add(-100 * time.Hour),
 		HTTPOnly: true,
@@ -244,8 +244,8 @@ func Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
-		Path:     c.Path(),     // Try to fix logout on production
-		Domain:   c.Hostname(), // Try to fix logout on production
+		Path:     "/",                                         // Try to fix logout on production
+		Domain:   "cosplace-server-production.up.railway.app", // Try to fix logout on production
 		MaxAge:   -1,
 		Expires:  time.Now().Add(-100 * time.Hour),
 		HTTPOnly: true,
