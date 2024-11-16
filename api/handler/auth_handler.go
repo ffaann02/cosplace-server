@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	h "github.com/ffaann02/cosplace-server/api/helper"
+	"github.com/ffaann02/cosplace-server/api/helper"
 	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	v "github.com/ffaann02/cosplace-server/internal/utils"
@@ -92,7 +92,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	userID, err := h.GenerateNewUserID(tx)
+	userID, err := helper.GenerateNewUserID(tx)
 	if err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -110,7 +110,6 @@ func Register(c *fiber.Ctx) error {
 		PhoneNumber: registerRequest.PhoneNumber,
 		DateOfBirth: registerRequest.DateOfBirth,
 		Gender:      registerRequest.Gender,
-		// DisplayName: registerRequest.Username,
 	}
 
 	// // Save the user in the database
@@ -118,6 +117,27 @@ func Register(c *fiber.Ctx) error {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
+		})
+	}
+
+	profileID, err := helper.GenerateNewProfileID(tx)
+	if err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างโปรไฟล์ผู้ใช้งาน",
+		})
+	}
+
+	newProfile := m.Profile{
+		ProfileID:   profileID,
+		UserID:      userID,
+		DisplayName: registerRequest.Username,
+	}
+
+	if err := db.Create(&newProfile).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างโปรไฟล์ผู้ใช้งาน",
 		})
 	}
 

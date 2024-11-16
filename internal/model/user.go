@@ -23,7 +23,7 @@ type RegisterRequest struct {
 	FirstName   string `json:"first_name"`
 	LastName    string `json:"last_name"`
 	PhoneNumber string `json:"phone_number"`
-	DateOfBirth string `json:"date_of_birth"` // Assuming input as string, can convert to `time.Time`
+	DateOfBirth string `json:"date_of_birth"`
 	Email       string `json:"email"`
 	Gender      string `json:"gender"`
 	Username    string `json:"username"`

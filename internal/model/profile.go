@@ -9,6 +9,7 @@ type Profile struct {
 	UserID          string    `json:"user_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	DisplayName     string    `json:"display_name" gorm:"type:varchar(50)"`
 	ProfileImageURL string    `json:"profile_image_url" gorm:"type:varchar(255)"`
+	CoverImageURL   string    `json:"cover_image_url" gorm:"type:varchar(255)"`
 	Bio             string    `json:"bio" gorm:"type:varchar(200)"`
 	InstagramURL    string    `json:"instagram_url" gorm:"type:varchar(100)"`
 	TwitterURL      string    `json:"twitter_url" gorm:"type:varchar(100)"`
