@@ -13,7 +13,9 @@ func ProfileRoutes(app fiber.Router) {
 }
 
 func ProtectedProfileRoutes(app fiber.Router) {
-	// profile := app.Group("/profile")
+	profile := app.Group("/profile")
 
 	// profile.Put("/upload/", handler.UpdateUser)
+	profile.Post("/display-name", handler.EditDisplayName)
+	profile.Post("/bio", handler.EditBio)
 }
