@@ -390,3 +390,67 @@ func CheckAuth(c *fiber.Ctx) error {
 		"message": "Unauthorized",
 	})
 }
+
+func ChangePassword(c *fiber.Ctx) error {
+	var passwordRequest struct {
+		UserID             string `json:"user_id"` // Assuming user_id is set in context
+		OldPassword        string `json:"old_password"`
+		NewPassword        string `json:"new_password"`
+		ConfirmNewPassword string `json:"confirm_password"`
+	}
+
+	if err := c.BodyParser(&passwordRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request",
+			"error":   "เกิดข้อผิดพลาดในการรับข้อมูล",
+		})
+	}
+
+	if passwordRequest.NewPassword != passwordRequest.ConfirmNewPassword {
+		fmt.Println(passwordRequest.NewPassword)
+		fmt.Println(passwordRequest.ConfirmNewPassword)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "New passwords do not match",
+			"error":   "รหัสผ่านใหม่ไม่ตรงกัน",
+		})
+	}
+
+	db := config.MysqlDB()
+	userID := passwordRequest.UserID
+
+	var user m.User
+	if err := db.Where("user_id = ?", userID).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "User not found",
+			"error":   "ไม่พบผู้ใช้งาน",
+		})
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(passwordRequest.OldPassword)); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Old password does not match",
+			"error":   "รหัสผ่านเดิมไม่ถูกต้อง",
+		})
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordRequest.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error encrypting new password",
+			"error":   "เกิดข้อผิดพลาดในการเข้ารหัสรหัสผ่านใหม่",
+		})
+	}
+
+	user.Password = string(hashedPassword)
+	if err := db.Save(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error saving new password",
+			"error":   "เกิดข้อผิดพลาดในการบันทึกรหัสผ่านใหม่",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Password changed successfully",
+		"message_th": "เปลี่ยนรหัสผ่านสำเร็จ",
+	})
+}
