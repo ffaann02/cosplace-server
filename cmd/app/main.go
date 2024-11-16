@@ -24,5 +24,5 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
-	log.Fatal(app.Listen("0.0.0.0:" + port))
+	log.Fatal(app.Listen("localhost:" + port))
 }
