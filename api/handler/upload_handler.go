@@ -2,6 +2,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	"github.com/ffaann02/cosplace-server/internal/utils"
@@ -27,6 +29,7 @@ func UploadProfileImage(c *fiber.Ctx) error {
 			"error": "Failed to upload image",
 		})
 	}
+	fmt.Println(imageURL)
 
 	db := config.MysqlDB()
 	tx := db.Begin()

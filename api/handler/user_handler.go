@@ -16,13 +16,24 @@ func GetUsers(c *fiber.Ctx) error {
 
 func GetUser(c *fiber.Ctx) error {
 	db := config.MysqlDB()
-	username := c.Query("username")
-	var user = m.User{Username: username}
-	if err := db.Find(&user).Error; err != nil {
+	username := c.Params("username")
+
+	// Validate username
+	if username == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Username is required",
+		})
+	}
+
+	var user m.User
+
+	// Query the user by username
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to query database",
 		})
 	}
+
 	fmt.Println(user)
 	return c.JSON(user)
 }
