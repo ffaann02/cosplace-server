@@ -2,11 +2,13 @@
 package handler
 
 import (
+	"github.com/ffaann02/cosplace-server/internal/config"
+	m "github.com/ffaann02/cosplace-server/internal/model"
 	"github.com/ffaann02/cosplace-server/internal/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
-func UploadImage(c *fiber.Ctx) error {
+func UploadProfileImage(c *fiber.Ctx) error {
 	// Parse the request body to get the base64-encoded image string and user_id
 	var requestBody struct {
 		Image  string `json:"image"`
@@ -23,6 +25,81 @@ func UploadImage(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to upload image",
+		})
+	}
+
+	db := config.MysqlDB()
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Update the profile_image_url in the users table
+	if err := tx.Model(&m.Profile{}).Where("user_id = ?", requestBody.UserID).Update("profile_image_url", imageURL).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update profile image URL",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
+		})
+	}
+
+	// Respond with the URL of the uploaded image
+	return c.JSON(fiber.Map{
+		"message":   "Image uploaded successfully",
+		"image_url": imageURL,
+	})
+}
+
+func UploadCoverImage(c *fiber.Ctx) error {
+	// Parse the request body to get the base64-encoded image string and user_id
+	var requestBody struct {
+		Image  string `json:"image"`
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	// Call the utility function to upload the image with the user_id
+	imageURL, err := utils.UploadImageToImgBB(requestBody.UserID, requestBody.Image)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to upload image",
+		})
+	}
+
+	db := config.MysqlDB()
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Update the profile_image_url in the users table
+	if err := tx.Model(&m.Profile{}).Where("user_id = ?", requestBody.UserID).Update("cover_image_url", imageURL).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update profile image URL",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
 		})
 	}
 

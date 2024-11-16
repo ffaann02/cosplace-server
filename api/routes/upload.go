@@ -11,5 +11,6 @@ import (
 
 func ProtectedUploadRoutes(app fiber.Router) {
 	uploader := app.Group("/upload")
-	uploader.Post("/image", handler.UploadImage)
+	uploader.Post("/profile-image", handler.UploadProfileImage)
+	uploader.Post("/cover-image", handler.UploadCoverImage)
 }
