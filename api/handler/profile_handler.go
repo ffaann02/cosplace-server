@@ -17,7 +17,29 @@ func GetProfile(c *fiber.Ctx) error {
 			"error": "Failed to query database",
 		})
 	}
+	fmt.Println("KUAY")
 	fmt.Println(profile)
+	return c.JSON(profile)
+}
+
+func GetFeedProfile(c *fiber.Ctx) error {
+	db := config.MysqlDB()
+	username := c.Params("username")
+	fmt.Println("Username:")
+
+	var user m.User
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query user",
+		})
+	}
+	var profile m.Profile
+	if err := db.Where("user_id = ?", user.UserID).First(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query profile",
+		})
+	}
+
 	return c.JSON(profile)
 }
 
@@ -32,7 +54,7 @@ func EditBio(c *fiber.Ctx) error {
 			"error": "Failed to parse request body",
 		})
 	}
-
+	fmt.Println(requestBody)
 	db := config.MysqlDB()
 	// Find the profile with the given user_id
 	var profile = m.Profile{UserID: requestBody.UserID}

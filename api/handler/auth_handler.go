@@ -101,7 +101,7 @@ func Register(c *fiber.Ctx) error {
 	}
 	// Create the new user
 	newUser := m.User{
-		UserId:      userID,
+		UserID:      userID,
 		Email:       registerRequest.Email,
 		Username:    registerRequest.Username,
 		Password:    string(hashedPassword),
@@ -163,6 +163,8 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	fmt.Println(loginRequest)
+
 	// Access the database connection from the config package
 	db := config.MysqlDB()
 
@@ -190,13 +192,13 @@ func Login(c *fiber.Ctx) error {
 
 	// Create JWT tokens (same as your original code)
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 720).Unix(),
 	}
@@ -226,26 +228,30 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Set cookies for tokens (same as your original code)
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessT,
-		Expires:  time.Now().Add(time.Minute * 15),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "None",
-	})
+	// c.Cookie(&fiber.Cookie{
+	// 	Name:     "access_token",
+	// 	Value:    accessT,
+	// 	Expires:  time.Now().Add(time.Minute * 15),
+	// 	HTTPOnly: true,
+	// 	Secure:   true,
+	// 	SameSite: "None",
+	// })
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshT,
-		Expires:  time.Now().Add(time.Hour * 720),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "None",
-	})
+	// c.Cookie(&fiber.Cookie{
+	// 	Name:     "refresh_token",
+	// 	Value:    refreshT,
+	// 	Expires:  time.Now().Add(time.Hour * 720),
+	// 	HTTPOnly: true,
+	// 	Secure:   true,
+	// 	SameSite: "None",
+	// })
 
-	return c.JSON(fiber.Map{
-		"message": "Login success",
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":       "Login success",
+		"user_id":       user.UserID,
+		"username":      user.Username,
+		"access_token":  accessT,
+		"refresh_token": refreshT,
 	})
 }
 
@@ -324,7 +330,7 @@ func Refresh(c *fiber.Ctx) error {
 
 	var user m.User
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}

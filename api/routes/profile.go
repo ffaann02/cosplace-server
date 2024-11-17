@@ -8,8 +8,9 @@ import (
 func ProfileRoutes(app fiber.Router) {
 	profile := app.Group("/profile")
 
-	profile.Get("/", handler.GetUsers)
+	// profile.Get("/", handler.GetUsers)
 	profile.Get("/:user_id", handler.GetProfile)
+	profile.Get("/feed/:username", handler.GetFeedProfile)
 }
 
 func ProtectedProfileRoutes(app fiber.Router) {
