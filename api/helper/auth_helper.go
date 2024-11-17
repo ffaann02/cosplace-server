@@ -19,7 +19,7 @@ func GenerateNewUserID(db *gorm.DB) (string, error) {
 		return "", err
 	}
 
-	parts := strings.Split(lastUser.UserId, "-")
+	parts := strings.Split(lastUser.UserID, "-")
 	if len(parts) != 2 {
 		return "", fmt.Errorf("invalid user_id format")
 	}

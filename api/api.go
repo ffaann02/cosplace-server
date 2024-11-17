@@ -32,4 +32,5 @@ func SetupRoutes(app *fiber.App) {
 	routes.ProtectedCommisionRoutes(protectedGroup)
 	routes.ProtectedUploadRoutes(protectedGroup)
 	routes.ProtectedProfileRoutes(protectedGroup)
+	routes.ProtectedFriendRoutes(protectedGroup)
 }

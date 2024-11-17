@@ -16,7 +16,7 @@ type Profile struct {
 	FacebookURL     string    `json:"facebook_url" gorm:"type:varchar(100)"`
 	CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt       time.Time `json:"updated_at" gorm:"autoUpdateTime"`
-	User            User      `json:"user" gorm:"foreignKey:UserID;references:UserId"`
+	User            User      `json:"user" gorm:"foreignKey:UserID;references:UserID"`
 }
 
 func (Profile) TableName() string {
