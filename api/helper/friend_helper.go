@@ -9,25 +9,25 @@ import (
 	"gorm.io/gorm"
 )
 
-func GenerateNewUserID(db *gorm.DB) (string, error) {
-	var lastUser m.User
-	if err := db.Order("user_id desc").First(&lastUser).Error; err != nil {
+func GenerateNewFriendshipID(db *gorm.DB) (string, error) {
+	var lastFriendship m.Friendship
+	if err := db.Order("friendship_id desc").First(&lastFriendship).Error; err != nil {
 		// If no previous user, set the first user ID
 		if err == gorm.ErrRecordNotFound {
-			return "U-1", nil
+			return "FS-1", nil
 		}
 		return "", err
 	}
 
-	parts := strings.Split(lastUser.UserID, "-")
+	parts := strings.Split(lastFriendship.FriendshipID, "-")
 	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid user_id format")
+		return "", fmt.Errorf("invalid friendship_id format")
 	}
 
 	num, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return "", err
 	}
-	newID := fmt.Sprintf("U-%d", num+1)
+	newID := fmt.Sprintf("FS-%d", num+1)
 	return newID, nil
 }

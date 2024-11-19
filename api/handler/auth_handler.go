@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	h "github.com/ffaann02/cosplace-server/api/helper"
+	"github.com/ffaann02/cosplace-server/api/helper"
 	config "github.com/ffaann02/cosplace-server/internal/config"
 	m "github.com/ffaann02/cosplace-server/internal/model"
 	v "github.com/ffaann02/cosplace-server/internal/utils"
@@ -36,6 +36,7 @@ func Register(c *fiber.Ctx) error {
 	registerRequest.LastName = c.Query("lastname")
 	registerRequest.DateOfBirth = c.Query("date_of_birth")
 	registerRequest.PhoneNumber = c.Query("phone_number")
+	registerRequest.Gender = c.Query("gender")
 
 	if err := c.BodyParser(&registerRequest); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -91,7 +92,7 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	userID, err := h.GenerateNewUserID(tx)
+	userID, err := helper.GenerateNewUserID(tx)
 	if err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -100,7 +101,7 @@ func Register(c *fiber.Ctx) error {
 	}
 	// Create the new user
 	newUser := m.User{
-		UserId:      userID,
+		UserID:      userID,
 		Email:       registerRequest.Email,
 		Username:    registerRequest.Username,
 		Password:    string(hashedPassword),
@@ -108,16 +109,35 @@ func Register(c *fiber.Ctx) error {
 		LastName:    registerRequest.LastName,
 		PhoneNumber: registerRequest.PhoneNumber,
 		DateOfBirth: registerRequest.DateOfBirth,
-		DisplayName: registerRequest.Username,
+		Gender:      registerRequest.Gender,
 	}
-
-	fmt.Println(newUser.Password)
 
 	// // Save the user in the database
 	if err := db.Create(&newUser).Error; err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้งาน",
+		})
+	}
+
+	profileID, err := helper.GenerateNewProfileID(tx)
+	if err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างโปรไฟล์ผู้ใช้งาน",
+		})
+	}
+
+	newProfile := m.Profile{
+		ProfileID:   profileID,
+		UserID:      userID,
+		DisplayName: registerRequest.Username,
+	}
+
+	if err := db.Create(&newProfile).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "เกิดข้อผิดพลาดในการสร้างโปรไฟล์ผู้ใช้งาน",
 		})
 	}
 
@@ -142,6 +162,8 @@ func Login(c *fiber.Ctx) error {
 			"message": "Invalid request",
 		})
 	}
+
+	fmt.Println(loginRequest)
 
 	// Access the database connection from the config package
 	db := config.MysqlDB()
@@ -170,13 +192,13 @@ func Login(c *fiber.Ctx) error {
 
 	// Create JWT tokens (same as your original code)
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Hour * 720).Unix(),
 	}
@@ -224,8 +246,12 @@ func Login(c *fiber.Ctx) error {
 		SameSite: "None",
 	})
 
-	return c.JSON(fiber.Map{
-		"message": "Login success",
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":       "Login success",
+		"user_id":       user.UserID,
+		"username":      user.Username,
+		"access_token":  accessT,
+		"refresh_token": refreshT,
 	})
 }
 
@@ -304,7 +330,7 @@ func Refresh(c *fiber.Ctx) error {
 
 	var user m.User
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserId,
+		"user_id":  user.UserID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	}
@@ -368,5 +394,69 @@ func CheckAuth(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 		"message": "Unauthorized",
+	})
+}
+
+func ChangePassword(c *fiber.Ctx) error {
+	var passwordRequest struct {
+		UserID             string `json:"user_id"` // Assuming user_id is set in context
+		OldPassword        string `json:"old_password"`
+		NewPassword        string `json:"new_password"`
+		ConfirmNewPassword string `json:"confirm_password"`
+	}
+
+	if err := c.BodyParser(&passwordRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid request",
+			"error":   "เกิดข้อผิดพลาดในการรับข้อมูล",
+		})
+	}
+
+	if passwordRequest.NewPassword != passwordRequest.ConfirmNewPassword {
+		fmt.Println(passwordRequest.NewPassword)
+		fmt.Println(passwordRequest.ConfirmNewPassword)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "New passwords do not match",
+			"error":   "รหัสผ่านใหม่ไม่ตรงกัน",
+		})
+	}
+
+	db := config.MysqlDB()
+	userID := passwordRequest.UserID
+
+	var user m.User
+	if err := db.Where("user_id = ?", userID).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "User not found",
+			"error":   "ไม่พบผู้ใช้งาน",
+		})
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(passwordRequest.OldPassword)); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Old password does not match",
+			"error":   "รหัสผ่านเดิมไม่ถูกต้อง",
+		})
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordRequest.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error encrypting new password",
+			"error":   "เกิดข้อผิดพลาดในการเข้ารหัสรหัสผ่านใหม่",
+		})
+	}
+
+	user.Password = string(hashedPassword)
+	if err := db.Save(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Error saving new password",
+			"error":   "เกิดข้อผิดพลาดในการบันทึกรหัสผ่านใหม่",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Password changed successfully",
+		"message_th": "เปลี่ยนรหัสผ่านสำเร็จ",
 	})
 }
