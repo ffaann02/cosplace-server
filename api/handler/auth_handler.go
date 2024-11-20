@@ -228,23 +228,23 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Set cookies for tokens (same as your original code)
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "access_token",
-	// 	Value:    accessT,
-	// 	Expires:  time.Now().Add(time.Minute * 15),
-	// 	HTTPOnly: true,
-	// 	Secure:   true,
-	// 	SameSite: "None",
-	// })
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessT,
+		Expires:  time.Now().Add(time.Minute * 15),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
 
-	// c.Cookie(&fiber.Cookie{
-	// 	Name:     "refresh_token",
-	// 	Value:    refreshT,
-	// 	Expires:  time.Now().Add(time.Hour * 720),
-	// 	HTTPOnly: true,
-	// 	Secure:   true,
-	// 	SameSite: "None",
-	// })
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshT,
+		Expires:  time.Now().Add(time.Hour * 720),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+	})
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message":       "Login success",
