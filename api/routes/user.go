@@ -20,4 +20,6 @@ func ProtectedUserRoutes(app fiber.Router) {
 	user.Put("/edit", handler.UpdateUser)
 	user.Post("/", handler.CreateUser)
 	user.Delete("/:id", handler.DeleteUser)
+
+	user.Post("/info", handler.GetUserInfo)
 }
