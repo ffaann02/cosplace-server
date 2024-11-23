@@ -35,4 +35,5 @@ func SetupRoutes(app *fiber.App) {
 	routes.ProtectedProfileRoutes(protectedGroup)
 	routes.ProtectedFriendRoutes(protectedGroup)
 	routes.ProtectedProductRoutes(protectedGroup)
+	routes.ProtectedShopRoutes(protectedGroup)
 }
