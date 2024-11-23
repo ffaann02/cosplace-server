@@ -24,6 +24,7 @@ func SetupRoutes(app *fiber.App) {
 	routes.CommisionRoutes(apiGroup)
 	routes.ProfileRoutes(apiGroup)
 	// routes.UploadRoutes(apiGroup)
+	routes.ProductRoutes(apiGroup)
 
 	protectedGroup := apiGroup.Group("/protected")
 	protectedGroup.Use(middleware.JWTProtected())
@@ -33,4 +34,5 @@ func SetupRoutes(app *fiber.App) {
 	routes.ProtectedUploadRoutes(protectedGroup)
 	routes.ProtectedProfileRoutes(protectedGroup)
 	routes.ProtectedFriendRoutes(protectedGroup)
+	routes.ProtectedProductRoutes(protectedGroup)
 }

@@ -112,3 +112,56 @@ func UploadCoverImage(c *fiber.Ctx) error {
 		"image_url": imageURL,
 	})
 }
+
+func UploadProductImage(c *fiber.Ctx) error {
+	// Parse the request body to get the base64-encoded image string and product_id
+	var productImage m.ProductImage
+	if err := c.BodyParser(&productImage); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	// Call the utility function to upload the image with the product_id
+	imageURL, err := utils.UploadImageToImgBB(productImage.ProductID, productImage.ImageURL)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to upload image",
+		})
+	}
+
+	db := config.MysqlDB()
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Create a new entry in the product_images table
+	newProductImage := m.ProductImage{
+		ProductID: productImage.ProductID,
+		ImageURL:  imageURL,
+	}
+	if err := tx.Create(&newProductImage).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create product image",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
+		})
+	}
+
+	// Respond with the URL of the uploaded image
+	return c.JSON(fiber.Map{
+		"message":   "Image uploaded successfully",
+		"image_url": imageURL,
+	})
+}
