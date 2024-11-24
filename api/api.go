@@ -24,6 +24,7 @@ func SetupRoutes(app *fiber.App) {
 	routes.CommisionRoutes(apiGroup)
 	routes.ProfileRoutes(apiGroup)
 	// routes.UploadRoutes(apiGroup)
+  routes.UploadRoutes(apiGroup)
 	routes.ProductRoutes(apiGroup)
 
 	protectedGroup := apiGroup.Group("/protected")
