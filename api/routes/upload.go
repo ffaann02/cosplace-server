@@ -5,9 +5,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// func UploadRoutes(app fiber.Router) {
-// 	uploader := app.Group("/upload")
-// }
+func UploadRoutes(app fiber.Router) {
+	uploader := app.Group("/upload")
+	uploader.Post("/test-s3", handler.TestUploadToAmazonS3)
+}
 
 func ProtectedUploadRoutes(app fiber.Router) {
 	uploader := app.Group("/upload")

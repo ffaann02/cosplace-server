@@ -23,7 +23,7 @@ func SetupRoutes(app *fiber.App) {
 	routes.AuthenRoutes(apiGroup)
 	routes.CommisionRoutes(apiGroup)
 	routes.ProfileRoutes(apiGroup)
-	// routes.UploadRoutes(apiGroup)
+	routes.UploadRoutes(apiGroup)
 
 	protectedGroup := apiGroup.Group("/protected")
 	protectedGroup.Use(middleware.JWTProtected())
