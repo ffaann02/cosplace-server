@@ -25,7 +25,6 @@ func GetFeedProfile(c *fiber.Ctx) error {
 	fmt.Println("GetFeedProfile")
 	db := config.MysqlDB()
 	username := c.Params("username")
-	fmt.Println("Username:")
 
 	var user m.User
 	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
@@ -33,7 +32,6 @@ func GetFeedProfile(c *fiber.Ctx) error {
 			"error": "Failed to query user",
 		})
 	}
-	fmt.Print(user)
 	var profile m.Profile
 	if err := db.Where("user_id = ?", user.UserID).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -41,7 +39,31 @@ func GetFeedProfile(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(profile)
+	var seller m.Seller
+	sellerID := ""
+	if err := db.Where("user_id = ?", user.UserID).First(&seller).Error; err == nil {
+		sellerID = seller.SellerID
+	}
+
+	profileResponse := m.ProfileResponse{
+		ProfileID:       profile.ProfileID,
+		UserID:          profile.UserID,
+		SellerID:        sellerID,
+		DisplayName:     profile.DisplayName,
+		ProfileImageURL: profile.ProfileImageURL,
+		CoverImageURL:   profile.CoverImageURL,
+		Bio:             profile.Bio,
+		InstagramURL:    profile.InstagramURL,
+		TwitterURL:      profile.TwitterURL,
+		FacebookURL:     profile.FacebookURL,
+		CreatedAt:       profile.CreatedAt,
+		UpdatedAt:       profile.UpdatedAt,
+		Username:        user.Username,
+		Gender:          user.Gender,
+		DateOfBirth:     user.DateOfBirth,
+	}
+
+	return c.JSON(profileResponse)
 }
 
 func EditBio(c *fiber.Ctx) error {
