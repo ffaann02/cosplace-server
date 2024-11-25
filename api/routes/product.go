@@ -6,9 +6,9 @@ import (
 )
 
 func ProductRoutes(app fiber.Router) {
-	// product := app.Group("/product")
+	product := app.Group("/product")
 
-	// profile.Get("/", handler.GetUsers)
+	product.Get("/", handler.GetAllProducts)
 	// product.Get("/:product_id", handler.GetProfile)
 	// product.Get("/all", handler.GetFeedProfile)
 }
@@ -16,7 +16,9 @@ func ProductRoutes(app fiber.Router) {
 func ProtectedProductRoutes(app fiber.Router) {
 	product := app.Group("/product")
 
-	product.Get("/", handler.GetProducts)
+	product.Get("/", handler.GetSellerProducts)
+	product.Get("/:product_id", handler.GetProduct)
+	product.Put("/:product_id", handler.UpdateProduct)
 	product.Delete("/:product_id", handler.DeleteProduct)
 
 	// profile.Put("/upload/", handler.UpdateUser)
