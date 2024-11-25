@@ -23,7 +23,7 @@ func UploadProfileImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the user_id
-	imageURL, err := utils.UploadImageToImgBB(requestBody.UserID, requestBody.Image)
+	imageURL, err := utils.UploadImageToAmazonS3(requestBody.Image, "profile", requestBody.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to upload image",
@@ -75,7 +75,7 @@ func UploadCoverImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the user_id
-	imageURL, err := utils.UploadImageToImgBB(requestBody.UserID, requestBody.Image)
+	imageURL, err := utils.UploadImageToAmazonS3(requestBody.Image, "cover", requestBody.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to upload image",
@@ -183,6 +183,34 @@ func UploadProductImage(c *fiber.Ctx) error {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to commit transaction",
+		})
+	}
+
+	// Respond with the URL of the uploaded image
+	return c.JSON(fiber.Map{
+		"message":   "Image uploaded successfully",
+		"image_url": imageURL,
+	})
+}
+
+func TestUploadToAmazonS3(c *fiber.Ctx) error {
+	// Parse the request body to get the base64-encoded image string and user_id
+	var requestBody struct {
+		UserID string `json:"user_id"`
+		Prefix string `json:"prefix"`
+		Image  string `json:"image"`
+	}
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	imageURL, err := utils.UploadImageToAmazonS3(requestBody.Image, "test", requestBody.UserID)
+	if err != nil {
+		fmt.Println("Error uploading image:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to upload image",
 		})
 	}
 
