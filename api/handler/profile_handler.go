@@ -17,12 +17,12 @@ func GetProfile(c *fiber.Ctx) error {
 			"error": "Failed to query database",
 		})
 	}
-	fmt.Println("KUAY")
 	fmt.Println(profile)
 	return c.JSON(profile)
 }
 
 func GetFeedProfile(c *fiber.Ctx) error {
+	fmt.Println("GetFeedProfile")
 	db := config.MysqlDB()
 	username := c.Params("username")
 	fmt.Println("Username:")
@@ -33,6 +33,7 @@ func GetFeedProfile(c *fiber.Ctx) error {
 			"error": "Failed to query user",
 		})
 	}
+	fmt.Print(user)
 	var profile m.Profile
 	if err := db.Where("user_id = ?", user.UserID).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
