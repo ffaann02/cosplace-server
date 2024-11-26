@@ -19,4 +19,5 @@ func ProtectedProfileRoutes(app fiber.Router) {
 	// profile.Put("/upload/", handler.UpdateUser)
 	profile.Post("/display-name", handler.EditDisplayName)
 	profile.Post("/bio", handler.EditBio)
+	profile.Post("/add-interests", handler.AddInterests)
 }

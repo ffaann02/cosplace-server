@@ -18,6 +18,7 @@ func main() {
 	}
 
 	config.InitDB()
+	config.InitAmazonS3()
 	app := fiber.New()
 	api.SetupRoutes(app)
 	var port string = os.Getenv("PORT")

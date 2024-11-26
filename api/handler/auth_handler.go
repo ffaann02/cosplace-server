@@ -190,17 +190,30 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	var role string
+	var seller m.Seller
+	if err := db.Where("user_id = ?", user.UserID).First(&seller).Error; err != nil {
+		role = "customer"
+		seller.SellerID = ""
+	} else {
+		role = "seller"
+	}
+
 	// Create JWT tokens (same as your original code)
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Minute * 15).Unix(),
+		"user_id":   user.UserID,
+		"username":  user.Username,
+		"role":      role,
+		"seller_id": seller.SellerID,
+		"exp":       time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	refreshClaims := jwt.MapClaims{
-		"user_id":  user.UserID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 720).Unix(),
+		"user_id":   user.UserID,
+		"username":  user.Username,
+		"role":      role,
+		"seller_id": seller.SellerID,
+		"exp":       time.Now().Add(time.Hour * 720).Unix(),
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -250,6 +263,8 @@ func Login(c *fiber.Ctx) error {
 		"message":       "Login success",
 		"user_id":       user.UserID,
 		"username":      user.Username,
+		"role":          role,
+		"seller_id":     seller.SellerID,
 		"access_token":  accessT,
 		"refresh_token": refreshT,
 	})
@@ -329,10 +344,22 @@ func Refresh(c *fiber.Ctx) error {
 	}
 
 	var user m.User
+	var role string
+	var seller m.Seller
+	db := config.MysqlDB()
+	if err := db.Where("user_id = ?", user.UserID).First(&seller).Error; err != nil {
+		role = "customer"
+		seller.SellerID = ""
+	} else {
+		role = "seller"
+	}
+
 	accessClaims := jwt.MapClaims{
-		"user_id":  user.UserID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Minute * 15).Unix(),
+		"user_id":   user.UserID,
+		"username":  user.Username,
+		"role":      role,
+		"seller_id": seller.SellerID,
+		"exp":       time.Now().Add(time.Minute * 15).Unix(),
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -384,11 +411,15 @@ func CheckAuth(c *fiber.Ctx) error {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		userID := claims["user_id"]
 		username := claims["username"]
+		role := claims["role"]
+		sellerID := claims["seller_id"]
 
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"message":  "Authenticated",
-			"user_id":  userID,
-			"username": username,
+			"message":   "Authenticated",
+			"user_id":   userID,
+			"username":  username,
+			"role":      role,
+			"seller_id": sellerID,
 		})
 	}
 

@@ -92,3 +92,35 @@ func DeleteUser(c *fiber.Ctx) error {
 		"message": "Delete user",
 	})
 }
+
+func GetUserInfo(c *fiber.Ctx) error {
+
+	var requestBody struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	userId := requestBody.UserID
+
+	// Validate username
+	if userId == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "userId is required",
+		})
+	}
+
+	var user m.User
+	db := config.MysqlDB()
+	// Query the user by username
+	if err := db.Where("user_id = ?", userId).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query database",
+		})
+	}
+
+	return c.JSON(user)
+}
