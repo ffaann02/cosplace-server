@@ -25,5 +25,9 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
-	log.Fatal(app.Listen("0.0.0.0:" + port))
+	var isProduction string = os.Getenv("PRODUCTION")
+	if isProduction == "false" {
+		log.Fatal(app.Listen("localhost:" + port))
+	}
+	log.Fatal(app.Listen(":" + port))
 }
