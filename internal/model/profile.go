@@ -19,6 +19,16 @@ type Profile struct {
 	User            User      `json:"user" gorm:"foreignKey:UserID;references:UserID"`
 }
 
+type ProfileInterest struct {
+	ID        string `json:"id" gorm:"type:varchar(10);primaryKey"`
+	ProfileID string `json:"profile_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Label     string `json:"label" gorm:"type:varchar(50)"`
+}
+
 func (Profile) TableName() string {
 	return "profiles"
+}
+
+func (ProfileInterest) TableName() string {
+	return "profile_interests"
 }

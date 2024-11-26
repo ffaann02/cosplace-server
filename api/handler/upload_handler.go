@@ -150,7 +150,7 @@ func UploadProductImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the product_id
-	imageURL, err := utils.UploadImageToImgBB(productImage.ProductID, productImage.ImageURL)
+	imageURL, err := utils.UploadImageToAmazonS3(productImage.ImageURL, "product", productImage.ProductID)
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -191,6 +191,114 @@ func UploadProductImage(c *fiber.Ctx) error {
 		"message":   "Image uploaded successfully",
 		"image_url": imageURL,
 	})
+}
+
+func UploadCustomPostReferencesImage(c *fiber.Ctx) error {
+	// Parse the request body to get the base64-encoded image string and product_id
+	var customPostRefImage m.CustomPostRefImage
+	if err := c.BodyParser(&customPostRefImage); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	// Call the utility function to upload the image with the product_id
+	imageURL, err := utils.UploadImageToAmazonS3(customPostRefImage.ImageURL, "custom_ref", customPostRefImage.PostID)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to upload image",
+		})
+	}
+
+	db := config.MysqlDB()
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Create a new entry in the product_images table
+	newCustomRefImage := m.CustomPostRefImage{
+		PostID:   customPostRefImage.PostID,
+		ImageURL: imageURL,
+	}
+	if err := tx.Create(&newCustomRefImage).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create custom ref image",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
+		})
+	}
+
+	// Respond with the URL of the uploaded image
+	return c.JSON(fiber.Map{
+		"message":   "Image uploaded successfully",
+		"image_url": imageURL,
+	})
+
+}
+
+func UploadPortfolioImage(c *fiber.Ctx) error {
+	// Parse the request body to get the base64-encoded image string and product_id
+	var portfolioImage m.PortfolioImage
+	if err := c.BodyParser(&portfolioImage); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	// Call the utility function to upload the image with the product_id
+	imageURL, err := utils.UploadImageToAmazonS3(portfolioImage.ImageURL, "custom_ref", portfolioImage.PortfolioID)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to upload image",
+		})
+	}
+
+	db := config.MysqlDB()
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to begin transaction",
+		})
+	}
+
+	// Create a new entry in the product_images table
+	newCustomRefImage := m.PortfolioImage{
+		PortfolioID: portfolioImage.PortfolioID,
+		ImageURL:    imageURL,
+	}
+	if err := tx.Create(&newCustomRefImage).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create custom ref image",
+		})
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to commit transaction",
+		})
+	}
+
+	// Respond with the URL of the uploaded image
+	return c.JSON(fiber.Map{
+		"message":   "Image uploaded successfully",
+		"image_url": imageURL,
+	})
+
 }
 
 func TestUploadToAmazonS3(c *fiber.Ctx) error {

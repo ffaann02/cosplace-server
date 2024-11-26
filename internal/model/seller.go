@@ -22,6 +22,11 @@ type Seller struct {
 	DeletedAt         *time.Time `json:"deleted_at,omitempty" gorm:"index"`
 }
 
+type SellerResponse struct {
+	Seller
+	SellerUsername string `json:"seller_username"`
+}
+
 func (Seller) TableName() string {
 	return "sellers"
 }

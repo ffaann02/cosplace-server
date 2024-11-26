@@ -28,9 +28,17 @@ type Product struct {
 type ProductResponse struct {
 	Product
 	ProductImages []ProductImage `json:"product_images"`
+	SellerID      string         `json:"seller_id"`
 }
 
 type ProductImage struct {
+	ProductImageID int     `json:"product_image_id" gorm:"primaryKey;autoIncrement"`
+	ProductID      string  `json:"product_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ImageURL       string  `json:"image_url" gorm:"type:varchar(255);not null"`
+	Product        Product `json:"product" gorm:"foreignKey:ProductID;references:ProductID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+}
+
+type ProductImageResponse struct {
 	ProductImageID int     `json:"product_image_id" gorm:"primaryKey;autoIncrement"`
 	ProductID      string  `json:"product_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	ImageURL       string  `json:"image_url" gorm:"type:varchar(255);not null"`
