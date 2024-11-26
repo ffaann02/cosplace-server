@@ -15,6 +15,8 @@ func GenerateNewFriendshipID(db *gorm.DB) (string, error) {
 		// If no previous user, set the first user ID
 		if err == gorm.ErrRecordNotFound {
 			return "FS-1", nil
+		} else {
+			fmt.Println(err)
 		}
 		return "", err
 	}
