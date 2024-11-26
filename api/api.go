@@ -42,4 +42,5 @@ func SetupRoutes(app *fiber.App) {
 	routes.ProtectedShopRoutes(protectedGroup)
 	routes.ProtectedCheckoutRoutes(protectedGroup)
 	routes.ProtectedPortfolioRoutes(protectedGroup)
+	routes.ProtectedMatchRoutes(protectedGroup)
 }
