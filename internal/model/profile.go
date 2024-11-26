@@ -19,24 +19,16 @@ type Profile struct {
 	User            User      `json:"user" gorm:"foreignKey:UserID;references:UserID"`
 }
 
-type ProfileResponse struct {
-	ProfileID       string    `json:"profile_id"`
-	UserID          string    `json:"user_id"`
-	SellerID        string    `json:"seller_id"`
-	DisplayName     string    `json:"display_name"`
-	ProfileImageURL string    `json:"profile_image_url"`
-	CoverImageURL   string    `json:"cover_image_url"`
-	Bio             string    `json:"bio"`
-	InstagramURL    string    `json:"instagram_url"`
-	TwitterURL      string    `json:"twitter_url"`
-	FacebookURL     string    `json:"facebook_url"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	Username        string    `json:"username"`
-	Gender          string    `json:"gender"`
-	DateOfBirth     string    `json:"date_of_birth"`
+type ProfileInterest struct {
+	ID        string `json:"id" gorm:"type:varchar(10);primaryKey"`
+	ProfileID string `json:"profile_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Label     string `json:"label" gorm:"type:varchar(50)"`
 }
 
 func (Profile) TableName() string {
 	return "profiles"
+}
+
+func (ProfileInterest) TableName() string {
+	return "profile_interests"
 }

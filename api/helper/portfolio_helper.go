@@ -10,22 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
-func GenerateNewSellerID(db *gorm.DB) (string, error) {
-	var products []model.Product
-	if err := db.Find(&products).Error; err != nil {
+func GenerateNewPortfolioID(db *gorm.DB) (string, error) {
+	var portfolios []model.Portfolio
+	if err := db.Find(&portfolios).Error; err != nil {
 		return "", err
 	}
 
-	if len(products) == 0 {
-		return "S-1", nil
+	if len(portfolios) == 0 {
+		return "PF-1", nil
 	}
 
 	// Extract numeric parts and sort them
 	var nums []int
-	for _, product := range products {
-		parts := strings.Split(product.ProductID, "-")
+	for _, portfolio := range portfolios {
+		parts := strings.Split(portfolio.PortfolioID, "-")
 		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid product_id format")
+			return "", fmt.Errorf("invalid portfolio_id format")
 		}
 		num, err := strconv.Atoi(parts[1])
 		if err != nil {
@@ -36,6 +36,6 @@ func GenerateNewSellerID(db *gorm.DB) (string, error) {
 
 	sort.Ints(nums)
 	newNum := nums[len(nums)-1] + 1
-	newID := fmt.Sprintf("S-%d", newNum)
+	newID := fmt.Sprintf("PF-%d", newNum)
 	return newID, nil
 }

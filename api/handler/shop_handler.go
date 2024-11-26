@@ -165,3 +165,28 @@ func GetSellerInfo(c *fiber.Ctx) error {
 		"seller":  seller,
 	})
 }
+
+func GetShopInfo(c *fiber.Ctx) error {
+	// Get the seller_id from the URL parameters
+	sellerID := c.Params("seller_id")
+	fmt.Println("Seller ID:", sellerID)
+
+	db := config.MysqlDB()
+	var seller m.SellerResponse
+	if err := db.Where("seller_id = ?", sellerID).First(&seller).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Seller not found",
+		})
+	}
+
+	var sellerUsername string
+	if err := db.Model(&m.User{}).Where("user_id = ?", seller.UserID).Pluck("username", &sellerUsername).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to get seller username"})
+	}
+
+	seller.SellerUsername = sellerUsername
+	return c.JSON(fiber.Map{
+		"message": "Seller found",
+		"seller":  seller,
+	})
+}

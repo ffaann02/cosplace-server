@@ -10,9 +10,9 @@ import (
 
 func GetProfile(c *fiber.Ctx) error {
 	db := config.MysqlDB()
-	userId := c.Query("user_id")
+	userId := c.Params("user_id")
 	var profile = m.Profile{UserID: userId}
-	if err := db.Find(&profile).Error; err != nil {
+	if err := db.Where("user_id = ?", userId).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to query database",
 		})
@@ -25,13 +25,18 @@ func GetFeedProfile(c *fiber.Ctx) error {
 	fmt.Println("GetFeedProfile")
 	db := config.MysqlDB()
 	username := c.Params("username")
+	fmt.Println("Username:", username)
 
+	// Fetch user by username
 	var user m.User
 	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to query user",
 		})
 	}
+	fmt.Print(user)
+
+	// Fetch profile by user_id
 	var profile m.Profile
 	if err := db.Where("user_id = ?", user.UserID).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -39,31 +44,33 @@ func GetFeedProfile(c *fiber.Ctx) error {
 		})
 	}
 
+	// Fetch seller by user_id (optional)
 	var seller m.Seller
 	sellerID := ""
 	if err := db.Where("user_id = ?", user.UserID).First(&seller).Error; err == nil {
 		sellerID = seller.SellerID
 	}
 
-	profileResponse := m.ProfileResponse{
-		ProfileID:       profile.ProfileID,
-		UserID:          profile.UserID,
-		SellerID:        sellerID,
-		DisplayName:     profile.DisplayName,
-		ProfileImageURL: profile.ProfileImageURL,
-		CoverImageURL:   profile.CoverImageURL,
-		Bio:             profile.Bio,
-		InstagramURL:    profile.InstagramURL,
-		TwitterURL:      profile.TwitterURL,
-		FacebookURL:     profile.FacebookURL,
-		CreatedAt:       profile.CreatedAt,
-		UpdatedAt:       profile.UpdatedAt,
-		Username:        user.Username,
-		Gender:          user.Gender,
-		DateOfBirth:     user.DateOfBirth,
+	// Fetch interests associated with the profile
+	var profileInterests []m.ProfileInterest
+	if err := db.Where("profile_id = ?", profile.ProfileID).Find(&profileInterests).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query profile interests",
+		})
 	}
 
-	return c.JSON(profileResponse)
+	// Extract labels of interests
+	interests := []string{}
+	for _, interest := range profileInterests {
+		interests = append(interests, interest.Label)
+	}
+
+	// Return response
+	return c.JSON(fiber.Map{
+		"profile":   profile,
+		"seller_id": sellerID,
+		"interests": interests,
+	})
 }
 
 func EditBio(c *fiber.Ctx) error {
@@ -137,5 +144,48 @@ func EditDisplayName(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message":      "Display name  updated successfully",
 		"display_name": profile.DisplayName,
+	})
+}
+
+func AddInterests(c *fiber.Ctx) error {
+	// Parse the request body to get the user_id and interests
+	var requestBody struct {
+		UserID    string   `json:"user_id"`
+		Interests []string `json:"interests"`
+	}
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Failed to parse request body",
+		})
+	}
+
+	db := config.MysqlDB()
+
+	// Find the profile with the given user_id
+	var profile m.Profile
+	if err := db.Where("user_id = ?", requestBody.UserID).First(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to query profile",
+		})
+	}
+
+	// Insert interests into profile_interests
+	for _, interest := range requestBody.Interests {
+		profileInterest := m.ProfileInterest{
+			ProfileID: profile.ProfileID,
+			Label:     interest,
+		}
+
+		if err := db.Create(&profileInterest).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to insert interest: " + interest,
+			})
+		}
+	}
+
+	// Respond with a success message
+	return c.JSON(fiber.Map{
+		"message":   "Interests updated successfully",
+		"interests": requestBody.Interests,
 	})
 }
