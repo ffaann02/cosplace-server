@@ -21,13 +21,12 @@ func main() {
 	config.InitAmazonS3()
 	app := fiber.New()
 	api.SetupRoutes(app)
+
 	var port string = os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = "3000" // Default port if not set in environment
 	}
-	var isProduction string = os.Getenv("PRODUCTION")
-	if isProduction == "false" {
-		log.Fatal(app.Listen("localhost:" + port))
-	}
+
+	// Always use the port without "localhost" in production
 	log.Fatal(app.Listen(":" + port))
 }
