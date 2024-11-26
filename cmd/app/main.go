@@ -27,6 +27,8 @@ func main() {
 		port = "3000" // Default port if not set in environment
 	}
 
+	fmt.Println("Server running on port", port)
+
 	// Always use the port without "localhost" in production
 	log.Fatal(app.Listen(":" + port))
 }
