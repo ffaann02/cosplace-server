@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -10,26 +11,31 @@ import (
 )
 
 func GenerateNewFriendshipID(db *gorm.DB) (string, error) {
-	var lastFriendship m.Friendship
-	if err := db.Order("friendship_id desc").First(&lastFriendship).Error; err != nil {
-		// If no previous user, set the first user ID
-		if err == gorm.ErrRecordNotFound {
-			return "FS-1", nil
-		} else {
-			fmt.Println(err)
+	var friendships []m.Friendship
+	if err := db.Find(&friendships).Error; err != nil {
+		return "", err
+	}
+
+	if len(friendships) == 0 {
+		return "FS-1", nil
+	}
+
+	// Extract numeric parts and sort them
+	var nums []int
+	for _, friendship := range friendships {
+		parts := strings.Split(friendship.FriendshipID, "-")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid friendship_id format")
 		}
-		return "", err
+		num, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return "", err
+		}
+		nums = append(nums, num)
 	}
 
-	parts := strings.Split(lastFriendship.FriendshipID, "-")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid friendship_id format")
-	}
-
-	num, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return "", err
-	}
-	newID := fmt.Sprintf("FS-%d", num+1)
+	sort.Ints(nums)
+	newNum := nums[len(nums)-1] + 1
+	newID := fmt.Sprintf("FS-%d", newNum)
 	return newID, nil
 }
