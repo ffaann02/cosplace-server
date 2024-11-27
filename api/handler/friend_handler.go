@@ -443,3 +443,70 @@ func DeleteFriend(c *fiber.Ctx) error {
 		"message": "Friend deleted successfully",
 	})
 }
+
+func CheckFriendStatusWithUsername(c *fiber.Ctx) error {
+	db := config.MysqlDB()
+
+	// Extract the `user_id` query parameter
+	userID := c.Query("user_id")
+	friendUsername := c.Query("friend_username")
+	if userID == "" || friendUsername == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing or invalid user_id or friend_username",
+		})
+	}
+
+	// Fetch the user by friend_username to get the friend_user_id
+	var friendUser m.User
+	if err := db.Where("username = ?", friendUsername).First(&friendUser).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to find friend user",
+		})
+	}
+
+	// Create the friendship
+	friendship := m.Friendship{}
+
+	fmt.Println(userID, friendUser.UserID)
+
+	if err := db.Where("user_id = ? AND friend_id = ?", userID, friendUser.UserID).First(&friendship).Error; err != nil {
+		// Check for reverse friendship
+		fmt.Println("Reverse friendship")
+		if err := db.Where("user_id = ? AND friend_id = ?", friendUser.UserID, userID).First(&friendship).Error; err != nil {
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"message":           "Friend status checked successfully",
+				"isFriend":          false,
+				"isWaitingAccept":   false,
+				"isIncomingRequest": false,
+			})
+		} else {
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{
+				"message":           "Friend status checked successfully",
+				"isFriend":          false,
+				"isWaitingAccept":   false,
+				"isIncomingRequest": true,
+			})
+		}
+	}
+
+	if friendship.Status == "accepted" {
+		return c.JSON(fiber.Map{
+			"message":           "Friend status checked successfully",
+			"isFriend":          true,
+			"isWaitingAccept":   false,
+			"isIncomingRequest": false,
+		})
+	} else if friendship.Status == "request" {
+		return c.JSON(fiber.Map{
+			"message":           "Friend status checked successfully",
+			"isFriend":          false,
+			"isWaitingAccept":   true,
+			"isIncomingRequest": false,
+		})
+	}
+
+	return c.Status((fiber.StatusInternalServerError)).JSON(fiber.Map{
+		"error": "Invalid friend status",
+	})
+
+}
