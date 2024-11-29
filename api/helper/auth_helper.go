@@ -2,32 +2,40 @@ package helper
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
-	m "github.com/ffaann02/cosplace-server/internal/model"
+	"github.com/ffaann02/cosplace-server/internal/model"
 	"gorm.io/gorm"
 )
 
 func GenerateNewUserID(db *gorm.DB) (string, error) {
-	var lastUser m.User
-	if err := db.Order("user_id desc").First(&lastUser).Error; err != nil {
-		// If no previous user, set the first user ID
-		if err == gorm.ErrRecordNotFound {
-			return "U-1", nil
+	var users []model.User
+	if err := db.Find(&users).Error; err != nil {
+		return "", err
+	}
+
+	if len(users) == 0 {
+		return "U-1", nil
+	}
+
+	// Extract numeric parts and sort them
+	var nums []int
+	for _, user := range users {
+		parts := strings.Split(user.UserID, "-")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid product_id format")
 		}
-		return "", err
+		num, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return "", err
+		}
+		nums = append(nums, num)
 	}
 
-	parts := strings.Split(lastUser.UserID, "-")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid user_id format")
-	}
-
-	num, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return "", err
-	}
-	newID := fmt.Sprintf("U-%d", num+1)
+	sort.Ints(nums)
+	newNum := nums[len(nums)-1] + 1
+	newID := fmt.Sprintf("U-%d", newNum)
 	return newID, nil
 }
