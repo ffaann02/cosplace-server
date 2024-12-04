@@ -29,9 +29,7 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	if err := db.AutoMigrate(&m.User{},
-		&m.Profile{},
-	); err != nil {
+	if err := db.AutoMigrate(&m.Order{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 

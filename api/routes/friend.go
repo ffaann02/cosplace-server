@@ -14,7 +14,7 @@ func FriendRoutes(app fiber.Router) {
 
 func ProtectedFriendRoutes(app fiber.Router) {
 	commision := app.Group("/friend")
-	// Fetch
+	// Fetch List
 	commision.Get("/list", handler.GetFriendList)
 	commision.Get("/requests", handler.GetFriendRequests)
 	commision.Get("/waiting-accept", handler.GetFriendWaitingAccept)
@@ -26,4 +26,7 @@ func ProtectedFriendRoutes(app fiber.Router) {
 	commision.Post("/cancel-request", handler.CancelFriendRequest)
 	// Delete friend
 	commision.Post("/delete", handler.DeleteFriend)
+
+	//
+	commision.Get("/check-status", handler.CheckFriendStatusWithUsername)
 }

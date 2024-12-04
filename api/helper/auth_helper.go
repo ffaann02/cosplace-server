@@ -25,7 +25,7 @@ func GenerateNewUserID(db *gorm.DB) (string, error) {
 	for _, user := range users {
 		parts := strings.Split(user.UserID, "-")
 		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid product_id format")
+			return "", fmt.Errorf("invalid user_id format")
 		}
 		num, err := strconv.Atoi(parts[1])
 		if err != nil {
