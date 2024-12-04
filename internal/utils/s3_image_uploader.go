@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	config "github.com/ffaann02/cosplace-server/internal/config"
@@ -21,28 +22,23 @@ import (
 // prefix: use as folder name
 // userID: use as a part of file name
 func UploadImageToAmazonS3(base64Image string, prefix string, userID string) (string, error) {
-
 	S3Session := config.AmazonS3Storage()
 	bucketName := os.Getenv("AWS_S3_BUCKET_NAME")
 
-	// Check if the S3 session is initialized
 	if S3Session == nil {
 		return "", errors.New("AWS S3 session not initialized")
 	}
 
-	// Split the base64 string to extract the mime type and data
 	parts := strings.Split(base64Image, ",")
 	if len(parts) != 2 {
 		return "", errors.New("invalid base64 image format")
 	}
 
-	// Decode the base64 data
 	imageData, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
 		return "", fmt.Errorf("failed to decode base64 image: %v", err)
 	}
 
-	// Get the mime type and file extension
 	mimeType := strings.Split(parts[0], ";")[0]
 	mimeType = strings.TrimPrefix(mimeType, "data:")
 	exts, err := mime.ExtensionsByType(mimeType)
@@ -50,12 +46,32 @@ func UploadImageToAmazonS3(base64Image string, prefix string, userID string) (st
 		return "", fmt.Errorf("unable to determine file extension for mime type: %s", mimeType)
 	}
 
-	// Generate a hash-based name for the folder and filename
+	// Generate the initial file name
 	timestamp := time.Now().Unix()
-	fileName := fmt.Sprintf("%s/%s-%d", prefix, userID, timestamp)
+	baseFileName := fmt.Sprintf("%s/%s-%d", prefix, userID, timestamp)
+	fileName := baseFileName
+	runningNumber := 0
 
-	// Create the S3 service client
+	// Check if the file already exists
 	svc := s3.New(S3Session)
+	for {
+		_, err = svc.HeadObject(&s3.HeadObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(fileName),
+		})
+
+		// If no error, the file exists; update the file name
+		if err == nil {
+			runningNumber++
+			fileName = fmt.Sprintf("%s-%d", baseFileName, runningNumber)
+		} else if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchKey {
+			// File does not exist; proceed with this name
+			break
+		} else {
+			// Unexpected error
+			return "", fmt.Errorf("failed to check if file exists: %v", err)
+		}
+	}
 
 	// Upload the file
 	_, err = svc.PutObject(&s3.PutObjectInput{

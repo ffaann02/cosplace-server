@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -10,24 +11,31 @@ import (
 )
 
 func GenerateNewProfileID(db *gorm.DB) (string, error) {
-	var lastProfile m.Profile
-	if err := db.Order("profile_id desc").First(&lastProfile).Error; err != nil {
-		// If no previous user, set the first user ID
-		if err == gorm.ErrRecordNotFound {
-			return "P-1", nil
+	var profiles []m.Profile
+	if err := db.Find(&profiles).Error; err != nil {
+		return "", err
+	}
+
+	if len(profiles) == 0 {
+		return "P-1", nil
+	}
+
+	// Extract numeric parts and sort them
+	var nums []int
+	for _, profile := range profiles {
+		parts := strings.Split(profile.ProfileID, "-")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid profile_id format")
 		}
-		return "", err
+		num, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return "", err
+		}
+		nums = append(nums, num)
 	}
 
-	parts := strings.Split(lastProfile.UserID, "-")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid profile_id format")
-	}
-
-	num, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return "", err
-	}
-	newID := fmt.Sprintf("P-%d", num+1)
+	sort.Ints(nums)
+	newNum := nums[len(nums)-1] + 1
+	newID := fmt.Sprintf("P-%d", newNum)
 	return newID, nil
 }

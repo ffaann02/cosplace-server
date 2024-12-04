@@ -63,10 +63,11 @@ func GetCheckout(c *fiber.Ctx) error {
 		}
 
 		productList = append(productList, fiber.Map{
-			"name":       product.Name,
-			"image":      productImages[0].ImageURL,
-			"price_unit": product.Price,
-			"quantity":   quantity,
+			"seller_id": product.CreatedBy,
+			"name":      product.Name,
+			"image":     productImages[0].ImageURL,
+			"price":     product.Price,
+			"quantity":  quantity,
 		})
 	}
 

@@ -11,19 +11,19 @@ import (
 )
 
 func GenerateNewSellerID(db *gorm.DB) (string, error) {
-	var products []model.Product
-	if err := db.Find(&products).Error; err != nil {
+	var sellers []model.Seller
+	if err := db.Find(&sellers).Error; err != nil {
 		return "", err
 	}
 
-	if len(products) == 0 {
+	if len(sellers) == 0 {
 		return "S-1", nil
 	}
 
 	// Extract numeric parts and sort them
 	var nums []int
-	for _, product := range products {
-		parts := strings.Split(product.ProductID, "-")
+	for _, seller := range sellers {
+		parts := strings.Split(seller.SellerID, "-")
 		if len(parts) != 2 {
 			return "", fmt.Errorf("invalid product_id format")
 		}
