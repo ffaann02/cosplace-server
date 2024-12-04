@@ -151,8 +151,7 @@ func UploadProductImage(c *fiber.Ctx) error {
 	// fmt.Println(productImage)
 
 	// Call the utility function to upload the image with the product_id
-	imageURL, err := utils.UploadImageToAmazonS3(productImage.ImageURL, "product", productImage.ProductID)
-	println(imageURL)
+	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(productImage.ImageURL, "product", productImage.ProductID)
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -205,7 +204,7 @@ func UploadCustomPostReferencesImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the product_id
-	imageURL, err := utils.UploadImageToAmazonS3(customPostRefImage.ImageURL, "custom_ref", customPostRefImage.PostID)
+	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(customPostRefImage.ImageURL, "custom_ref", customPostRefImage.PostID)
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -259,7 +258,7 @@ func UploadPortfolioImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the product_id
-	imageURL, err := utils.UploadImageToAmazonS3(portfolioImage.ImageURL, "custom_ref", portfolioImage.PortfolioID)
+	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(portfolioImage.ImageURL, "custom_ref", portfolioImage.PortfolioID)
 	if err != nil {
 		fmt.Println(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
