@@ -21,7 +21,7 @@ type CustomPost struct {
 
 type CustomPostResponse struct {
 	CustomPost
-	CustomRefImages []CustomPostRefImage `json:"custom_ref_images"`
+	CustomRefImages []CustomPostRefImage `json:"custom_ref_images" gorm:"foreignKey:PostID;references:PostID"`
 }
 
 type CustomPostRefImage struct {

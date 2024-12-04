@@ -10,7 +10,7 @@ func CustomRoutes(app fiber.Router) {
 
 	custom.Get("/", handler.GetCommisions)
 	// custom.Post("/", handler.CreateCommision)
-	custom.Get("/:id", handler.GetCommision)
+	custom.Get("/:user_id", handler.GetCommisionByUserID)
 }
 
 func ProtectedCustomRoutes(app fiber.Router) {
