@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	m "github.com/ffaann02/cosplace-server/internal/model"
+	"github.com/ffaann02/cosplace-server/internal/model"
 	"gorm.io/gorm"
 )
 
 func GenerateNewProfileID(db *gorm.DB) (string, error) {
-	var profiles []m.Profile
+	var profiles []model.Profile
 	if err := db.Find(&profiles).Error; err != nil {
 		return "", err
 	}
