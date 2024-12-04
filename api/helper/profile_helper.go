@@ -17,7 +17,7 @@ func GenerateNewProfileID(db *gorm.DB) (string, error) {
 	}
 
 	if len(profiles) == 0 {
-		return "U-1", nil
+		return "P-1", nil
 	}
 
 	// Extract numeric parts and sort them
@@ -25,7 +25,7 @@ func GenerateNewProfileID(db *gorm.DB) (string, error) {
 	for _, profile := range profiles {
 		parts := strings.Split(profile.ProfileID, "-")
 		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid product_id format")
+			return "", fmt.Errorf("invalid profile_id format")
 		}
 		num, err := strconv.Atoi(parts[1])
 		if err != nil {
@@ -36,6 +36,6 @@ func GenerateNewProfileID(db *gorm.DB) (string, error) {
 
 	sort.Ints(nums)
 	newNum := nums[len(nums)-1] + 1
-	newID := fmt.Sprintf("PF-%d", newNum)
+	newID := fmt.Sprintf("P-%d", newNum)
 	return newID, nil
 }
