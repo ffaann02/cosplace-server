@@ -148,6 +148,7 @@ func UploadProductImage(c *fiber.Ctx) error {
 			"error": "Failed to parse request body",
 		})
 	}
+	// fmt.Println(productImage)
 
 	// Call the utility function to upload the image with the product_id
 	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(productImage.ImageURL, "product", productImage.ProductID)
