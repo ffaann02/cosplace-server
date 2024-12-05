@@ -88,8 +88,7 @@ func EditBio(c *fiber.Ctx) error {
 	db := config.MysqlDB()
 	// Find the profile with the given user_id
 	var profile = m.Profile{UserID: requestBody.UserID}
-	if err :=
-		db.Find(&profile).Error; err != nil {
+	if err := db.Where("user_id = ?", requestBody.UserID).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to query database",
 		})
@@ -122,11 +121,12 @@ func EditDisplayName(c *fiber.Ctx) error {
 		})
 	}
 
+	fmt.Println(requestBody)
+
 	db := config.MysqlDB()
 	// Find the profile with the given user_id
 	var profile = m.Profile{UserID: requestBody.UserID}
-	if err :=
-		db.Find(&profile).Error; err != nil {
+	if err := db.Where("user_id = ?", requestBody.UserID).First(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to query database",
 		})
