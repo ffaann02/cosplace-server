@@ -31,10 +31,36 @@ type CustomPostRefImage struct {
 	CustomPost    CustomPost `json:"custom_post" gorm:"foreignKey:PostID;references:PostID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
+type OfferCommentFromSeller struct {
+	OfferID   string    `json:"offer_id" gorm:"type:varchar(10);primaryKey"`
+	PostID    string    `json:"post_id" gorm:"type:varchar(10);not null;index"`
+	Text      string    `json:"text" gorm:"type:varchar(200);not null"`
+	CreatedBy string    `json:"created_by" gorm:"type:varchar(10);not null;index"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime;not null"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime;not null"`
+}
+
+type OfferLinks struct {
+	OfferLinkID int        `json:"offer_link_id" gorm:"primaryKey;autoIncrement"`
+	OfferID     string     `json:"offer_id" gorm:"type:varchar(10);not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Link        string     `json:"link" gorm:"type:varchar(255);not null"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime;not null"`
+	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime;not null"`
+	DeletedAt   *time.Time `json:"deleted_at"`
+}
+
 func (CustomPost) TableName() string {
 	return "custom_posts"
 }
 
 func (CustomPostRefImage) TableName() string {
 	return "customs_ref_images"
+}
+
+func (OfferCommentFromSeller) TableName() string {
+	return "offer_comments_from_seller"
+}
+
+func (OfferLinks) TableName() string {
+	return "offer_links"
 }
