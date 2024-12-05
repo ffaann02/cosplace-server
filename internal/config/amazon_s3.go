@@ -7,24 +7,19 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/joho/godotenv"
 )
 
 var S3Session *session.Session
 
 // InitAmazonS3 initializes the AWS S3 session
 func InitAmazonS3() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file:", err)
-		return
-	}
-
 	// Get AWS configuration from environment variables
 	region := os.Getenv("AWS_REGION")
 	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	fmt.Println("Initializing AWS S3 session...")
+	fmt.Printf("Region: %s\n", region)
 
 	// Create a new AWS session
 	sess, err := session.NewSession(&aws.Config{
