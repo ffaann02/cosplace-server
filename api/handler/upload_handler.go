@@ -23,7 +23,7 @@ func UploadProfileImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the user_id
-	imageURL, err := utils.UploadImageToAmazonS3(requestBody.Image, "profile", requestBody.UserID)
+	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(requestBody.Image, "profile", requestBody.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to upload image",
@@ -75,7 +75,7 @@ func UploadCoverImage(c *fiber.Ctx) error {
 	}
 
 	// Call the utility function to upload the image with the user_id
-	imageURL, err := utils.UploadImageToAmazonS3(requestBody.Image, "cover", requestBody.UserID)
+	imageURL, err := utils.UploadImageToAmazonS3WithRunningNumber(requestBody.Image, "cover", requestBody.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to upload image",

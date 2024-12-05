@@ -7,9 +7,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func GetCommisions(c *fiber.Ctx) error {
+func GetAllCommissions(c *fiber.Ctx) error {
+	var commissions []model.CustomPostResponse
+	db := config.MysqlDB()
+
+	// Fetch all CustomPost along with their CustomPostRefImages, sorted by creation date in descending order
+	if err := db.Model(&model.CustomPost{}).
+		Order("created_at DESC").
+		Preload("CustomRefImages"). // Preload the associated CustomRefImages
+		Find(&commissions).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve commissions",
+		})
+	}
+
+	// Return the commissions data as JSON
 	return c.JSON(fiber.Map{
-		"message": "Get all commisions",
+		"commissions": commissions,
 	})
 }
 
@@ -84,5 +98,26 @@ func CreateCommision(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Commission created successfully",
 		"post_id": commission.PostID,
+	})
+}
+
+func GetCommisionByUserID(c *fiber.Ctx) error {
+	userID := c.Params("user_id")
+
+	var commissions []model.CustomPostResponse
+	db := config.MysqlDB()
+
+	// Fetch CustomPost along with their CustomPostRefImages
+	if err := db.Model(&model.CustomPost{}).
+		Where("created_by = ?", userID).
+		Preload("CustomRefImages").
+		Find(&commissions).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve commissions",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"commissions": commissions,
 	})
 }
