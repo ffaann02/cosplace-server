@@ -42,7 +42,7 @@ func GetCosplayerList(c *fiber.Ctx) error {
 		Where("user_id = ?", userID)
 
 	if err := db.Model(&m.User{}).
-		Select("users.user_id, users.username, users.display_name, users.first_name, users.last_name, profiles.profile_image_url, profiles.display_name").
+		Select("users.user_id, users.username, users.first_name, users.last_name, profiles.profile_image_url, profiles.display_name").
 		Joins("left join profiles on profiles.user_id = users.user_id").
 		Where("users.user_id != ?", userID).
 		Where("users.user_id NOT IN (?) AND users.user_id NOT IN (?)", subQuery1, subQuery2).
