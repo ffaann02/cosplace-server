@@ -8,13 +8,13 @@ import (
 func CustomRoutes(app fiber.Router) {
 	custom := app.Group("/custom")
 
-	custom.Get("/", handler.GetCommisions)
+	custom.Get("/", handler.GetAllCommissions)
 	// custom.Post("/", handler.CreateCommision)
-	custom.Get("/:id", handler.GetCommision)
+	custom.Get("/:user_id", handler.GetCommisionByUserID)
 }
 
 func ProtectedCustomRoutes(app fiber.Router) {
 	custom := app.Group("/custom")
-	custom.Get("/", handler.GetCommisions)
+	// custom.Get("/", handler.GetCommisions)
 	custom.Post("/", handler.CreateCommision)
 }
