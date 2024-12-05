@@ -30,7 +30,7 @@ func GetFriendList(c *fiber.Ctx) error {
 	}
 
 	if err := db.Table("friendships").
-		Select("users.user_id, users.username, users.display_name, users.first_name, users.last_name, profiles.profile_image_url").
+		Select("users.user_id, users.username, profiles.display_name, users.first_name, users.last_name, profiles.profile_image_url").
 		Joins("left join users on users.user_id = friendships.friend_id").
 		Joins("left join profiles on profiles.user_id = friendships.friend_id").
 		Where("friendships.user_id = ? AND friendships.status = ?", userID, "accepted").
@@ -64,7 +64,7 @@ func GetFriendRequests(c *fiber.Ctx) error {
 	}
 
 	if err := db.Table("friendships").
-		Select("users.user_id, users.username, users.display_name, users.first_name, users.last_name, profiles.profile_image_url").
+		Select("users.user_id, users.username, profiles.display_name, users.first_name, users.last_name, profiles.profile_image_url").
 		Joins("left join users on users.user_id = friendships.user_id").
 		Joins("left join profiles on profiles.user_id = users.user_id").
 		Where("friendships.friend_id = ? AND friendships.status = ?", userID, "request").
@@ -98,7 +98,7 @@ func GetFriendWaitingAccept(c *fiber.Ctx) error {
 	}
 
 	if err := db.Table("friendships").
-		Select("users.user_id, users.username, users.display_name, users.first_name, users.last_name, profiles.profile_image_url").
+		Select("users.user_id, users.username, profiles.display_name, users.first_name, users.last_name, profiles.profile_image_url").
 		Joins("left join users on users.user_id = friendships.friend_id").
 		Joins("left join profiles on profiles.user_id = friendships.friend_id").
 		Where("friendships.user_id = ? AND friendships.status = ?", userID, "request").
@@ -142,7 +142,7 @@ func GetSuggestions(c *fiber.Ctx) error {
 		Where("user_id = ?", userID)
 
 	if err := db.Model(&m.User{}).
-		Select("users.user_id, users.username, users.display_name, users.first_name, users.last_name, profiles.profile_image_url").
+		Select("users.user_id, users.username, profiles.display_name, users.first_name, users.last_name, profiles.profile_image_url").
 		Joins("left join profiles on profiles.user_id = users.user_id").
 		Where("users.user_id != ?", userID).
 		Where("users.user_id NOT IN (?) AND users.user_id NOT IN (?)", subQuery1, subQuery2).
